@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IMS&ISS List's</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {background-color:#181818;color:#666666;}
+
+    input {
+        background-color:#666666;
+        border-width: inherit;
+        font-size:14pt;
+    }
+    button {
+        background-color:#333333;
+        color:#efefef;
+        font-size:14pt;
+    }
+    tbody tr:nth-child(odd) {
+        background-color: #222222;
+    }
+    td {
+        /*padding:2 0 2 0;*/
+        font-size:12pt;
+    }
+
+    a {
+        color:#999999;
+        /**/text-decoration:none;/**/
+    }
+    #pageDiv {
+        text-align:center;
+    }
+    table {
+        width:100%;
+    }
+    .page-link {
+        border: 1px #444444 solid;
+        color:#666666;
+        background-color:#333333;
+
+    }
+    .active>.page-link {
+        background-color:#444444;
+        border-color:#444444;
+    }
+input[type="checkbox"]{
+        display: none;
+      }
+input[type="checkbox"] + label{
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border:1px solid #707070;
+        position: relative;
+        margin:5px 0 0 5px;
+      }
+input[id="chkIss"]:checked + label::after{
+        content:'✔';
+        font-size: 8px;
+        width: 14px;
+        height: 14px;
+        text-align: center;
+        position: absolute;
+        left: 0;
+        top:0;
+        color: azure;
+      }
+/**/
+    /* 고정폭 폰트로 교정 */
+    html {
+        font-feature-settings: "tnum";
+        font-variant-numeric: tabular-nums;
+    }
+
+    @media (max-width: 375px) {
+        html {
+            font-size:14pt;
+        }
+    }
+
+    /*td.monospace {font-family:monospace;}*/
+    * {font-family:monospace;}
+    td.title {
+        text-overflow:ellipsis;
+        white-space:nowrap;
+        overflow: hidden;
+    }
+
+    #totalDiv {
+        position: fixed;
+        top: 16px;
+        left:5px;
+    }
+  </style>
+  <script src="kssmcode.js?v1.0"></script>
+  <script>
+    Number.prototype.to2 = function(){return this<10?'0'+this:this;}
+    Number.prototype.toDate = function(){
+            //return new Date(1980,0,this).toJSON().substring(2,10)
+            var y=80+(this>>9)&0x00ff;
+            var m=   (this>>5)&0x000f;
+            var d=    this    &0x001f;
+            if(y>=100) y-=100;
+            return y+'-'+m.to2()+'-'+d.to2();
+        }
+    Number.prototype.format = function(){return new String(this).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",")}
+    Number.prototype.timeFormat = function(){ return Math.floor(this/60)+':'+(this%60).to2(); }
+    function log() {
+        console.log.apply(console
+            , [new Date().toJSON()].concat(Array.prototype.slice.call(arguments, 0)) );
+    }
+
+var songs = [];
+var ajaxcounter = 0;
+var _xhr;
+    function Ajax(url,callback){
+        //console.log(new Date().toISOString(), 'start');
+        var xhr = new XMLHttpRequest();
+        ajaxcounter++;
+//_xhr = xhr
+        xhr.open('GET', url, true);
+//        xhr.open('GET', url, false);
+        xhr.responseType = 'arraybuffer';
+        xhr.withCredentials = true;
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest'); xhr.setRequestHeader('Access-Control-Allow-Origin', '*');
+
+        // via Cache-Control header:
+        xhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0");
+
+        // fallbacks for IE and older browsers:
+        xhr.setRequestHeader("Expires", "Tue, 01 Jan 1980 1:00:00 GMT");
+        xhr.setRequestHeader("Pragma", "no-cache"); //Edit: I noticed this is required for Chrome some time ago... forgot to mention here
+
+        // Process the response when the request is ready.
+        xhr.onload = function(e) {
+          if (this.status == 200) {
+              //callback(this.response);
+              //log('xhr.responseURL',xhr.responseURL);
+              new loadList(this.response)
+              ajaxcounter--;
+              //console.log('ajaxcounter',ajaxcounter)
+              if(!ajaxcounter) listPut(1);
+          }
+        };
+        xhr.send();
+    }
+
+    var uInt8Array;
+    function loadList(rs){
+        uInt8Array = new Uint8Array(rs);
+        //log('uInt8Array', uInt8Array);
+        ///////////////////////////////////////////////////////////////////////
+        var getByte = (()=>{
+            var position = 0;
+            return (length, type)=>{
+                var start = position;
+                position += length;
+                type=type||'';
+                if(type=='int8'){
+                    return uInt8Array[start];
+                } else if(type=='int16'){
+                    return uInt8Array[start+1]<< 8|uInt8Array[start  ];
+                } else if(type=='int32'){
+                    return uInt8Array[start+3]<<24|uInt8Array[start+2]<<16
+                          |uInt8Array[start+1]<< 8|uInt8Array[start  ];
+                } else {
+                    returnVal='';
+                    isErr = false;
+                    for(var i=0; i<length; i++){
+                        var h = uInt8Array[ start+i   ];
+                        //console.log(h)
+                        if(h == 0x00) break; // 쓰레기값이 출력되서 EOF?처리함
+                        var l = '';
+                        if(uInt8Array.length > start+i+1) l = uInt8Array[ start+i+1 ];
+
+                        if(h & 0x80) {
+                            if (l == 0x00) {// continue;	/* 하위 바이트 ERROR */
+                                returnVal += '[]';
+                                continue;
+                            }
+
+                            var ch = ((h << 8) & 0xff00) + (l & 0xff);
+                            if (ch >= 0x8861 && ch <= 0xd3b7) {	/* '가'부터 '힝'까지 2,350자 */
+                                returnVal+=KSSMCODE[ch] || '';
+                            } else if (ch >= 0xd931 && ch <= 0xdef1) {	/* 조합형 symbol */
+                                if(!KSSMCODE[ch]){
+                                    isErr = true;
+                                    console.log('MM', h, l, ch, ch.toString(16));
+                                }
+                                //returnVal+='MM';
+                                returnVal+=KSSMCODE[ch] || 'MM';
+                            } else {	/* 초성 'ㄱ', 종성 자음, 모음 */
+                                if(!KSSMCODE[ch]){
+                                    isErr = true;
+                                    console.log('HH', h, l, ch, ch.toString(16));
+                                }
+                                //returnVal+='HH';
+                                returnVal+=KSSMCODE[ch] || 'HH';
+                            }
+                            i++;
+                        } else {
+                            returnVal += String.fromCharCode(uInt8Array[start+i]).replace(/\x00/g,'');
+                            //returnVal += String.fromCharCode(uInt8Array[start+i]);
+                        }
+                    }
+                    //if(length==64) 
+                    //if(length>2) 
+                    if(isErr)
+                    console.log(returnVal);
+                    return returnVal;
+                }
+            }
+        })();
+
+        // ocplay ims 목록 파일의 해더 정의
+        function Header(){
+            return {
+                 head_str   : getByte(27)
+                ,tmp01_i8   : getByte(1, 'int8')
+                ,bankpath   : getByte(80)
+                ,listpath   : getByte(80)
+    //            ,tmp02_1    : getByte(1, 'int8')
+    //            ,tmp02_2    : getByte(1, 'int8')
+    //            ,tmp02_3    : getByte(1, 'int8')
+    //            ,tmp02_4    : getByte(1, 'int8')
+                ,tmp02_i32  : getByte(4, 'int32')
+//                ,tmp03_1    : getByte(1, 'int8')
+//                ,tmp03_2    : getByte(1, 'int8')
+//                ,tmp03_3    : getByte(1, 'int8')
+//                ,tmp03_4    : getByte(1, 'int8')
+//                ,songcnt    : getByte(4, 'int32')
+                ,songcnt    : getByte(2, 'int16')
+                ,tmp03_1_i8 : getByte(1, 'int8')
+                ,tmp03_2_i8 : getByte(1, 'int8')
+//                ,songcnt    : 0
+                ,tmp04_1_i8 : getByte(1, 'int8')
+                ,tmp04_2_i8 : getByte(1, 'int8')
+                ,tmp04_3_i8 : getByte(1, 'int8')
+                ,tmp04_4_i8 : getByte(1, 'int8')
+//                ,tmp03_i32  : getByte(4, 'int32')
+//                ,tmp05_1_i8 : getByte(1, 'int8')
+//                ,tmp05_2_i8 : getByte(1, 'int8')
+                ,tmp05_i16  : 0
+//                ,tmp05f     : function(){this.tmp04_i16 = this.tmp04_2_i8<<8||this.tmp04_1_i8; console.log(this)}
+    //            ,tmp04      : getByte(2, 'int16')
+            }
+        }
+
+        // ocplay ims 목록의 1개 item 정의
+        function SongList(hdr){
+            return {
+                 imssize   : getByte(4, 'int32')
+                ,isssize   : getByte(4, 'int32')
+                ,filename  : getByte(9)
+                ,date      : getByte(2, 'int16')
+                ,duration  : getByte(2, 'int16')
+                ,title     : getByte(30)
+                ,index     : getByte(2, 'int16')
+                ,path      : hdr.listpath
+            }
+        }
+        ///////////////////////////////////////////////////////////////////////
+
+        var header = new Header();
+
+        // ocplpay 버전별 리스트 파일 해더 크기가 다름.
+        if(header.tmp04_1_i8) header.tmp05_i16 = getByte(2, 'int16');
+
+        //log('header', header);
+        //console.log('header.songcnt',header.songcnt);
+        console.log('ajaxcounter', ajaxcounter,'header.songcnt', header.songcnt, '>', header.songcnt+songs.length);
+        //console.log('ajaxcounter %2d header.songcnt %4d', ajaxcounter ,header.songcnt);
+        for(var i=0; i<header.songcnt; i++){
+//            isErr=false;
+            //songs.push( new SongList(header) );
+            var song = new SongList(header);
+            song.index = songs.length;
+            songs.push( song );
+            //if(isErr) log('idx',i);
+            if(isErr) log('idx',songs.length-1, );
+        }
+        //log('songs', songs);
+    }
+
+//    listPut(1);
+
+    var page_num = 20;
+    var show_page_num = 10;
+    var isIss = true;
+    var isFilename = true;
+    var isTitle = true;
+    function listPut(page){
+        console.log(new Date().toISOString(), 'listPut Start');
+        //var list = songs.filter( (el)=>{return el.title.indexOf(search.value)>-1} );
+        var list = songs.filter( (el)=>{
+                if(isIss){
+                    return el.title.replace(/[ ]/g,'').indexOf(search.value)>-1;
+                } else {
+                    return el.title.replace(/[ ]/g,'').indexOf(search.value)>-1 && el.isssize;
+                }
+            } );
+        //console.log(list);
+        var total = list.length;
+        totalDiv.innerText = total.format();
+        var html='<table border=0 cellspacing=1 style="table-layout: fixed;">'
+        html += '<colgroup><col width="40px" /><col width="80px" /><col /><col width="40px" /><col width="70px" /><col width="60px" /><col width="80px" /></colgroup>';
+        html += '<tr><th>No.</th>';
+        html += '<th>파일명<label id="chkFilename"></label></th>';
+        html += '<th>노래 제목<label id="chkTitle"></label></th>';
+        html += '<th>시간</th><th>Ims</th>'
+        html += '<th>Iss<input type="checkbox" id="chkIss"'+(isIss?'':' checked')+'><label for="chkIss"></label></th><th>Date</th></tr>';
+        var start_num=(page-1)*page_num; // 페이지 수에 따른 출력시 첫번째가 될 글의 번호 구함
+        //log('total', total);
+        //log('start_num', start_num);
+        for(var j=start_num; j<start_num+page_num; j++){
+            //log('j',j);
+            if(j>=total) break;
+            var itemNo = j;
+            var listNo = itemNo + 1;
+            var iss = list[itemNo].isssize;
+            if(iss) iss = '<a href="javascript:viewIss('+list[itemNo].index+')">'+ iss.format() +'</a>';
+            else    iss = '-'; //'&lt;None>';
+            html += '<tr>';
+            html += '<td align=center>'+ listNo +'</td>';
+            html += '<td><a href="javascript:viewIms('+list[itemNo].index+')" title="'+list[itemNo].path+'">'+ list[itemNo].filename +'</a></td>';
+            //html += '<td><a href="javascript:viewIss('+list[itemNo].index+')">'+ list[itemNo].title.replace(/[ ]/g,'&nbsp;') +'</a></td>';
+            html += '<td class="title">'+ list[itemNo].title.replace(/[ ]/g,'&nbsp;') +'</td>';
+            //html += '<td class="title"><pre>'+ list[itemNo].title +'</pre></td>';
+            html += '<td align=center>'+ list[itemNo].duration.timeFormat() +'</td>';
+            html += '<td align=right><a href="javascript:viewIms('+list[itemNo].index+')" title="'+list[itemNo].path+'">'+ list[itemNo].imssize.format() +'</a></td>';
+            //html += '<td align=right><a href="javascript:viewIss('+list[itemNo].index+')">'+ list[itemNo].isssize.format() +'</a></td>';
+            html += `<td align=right>${iss}</td>`;
+            html += '<td align=center>'+ list[itemNo].date.toDate() +'</td>';
+            html += '</tr>';
+        }
+        html += '</table>';
+        listDiv.innerHTML = html;
+
+        var total_page=parseInt((total-1)/page_num)+1; // 전체 페이지 구함
+        var start_page=parseInt((page-1)/show_page_num)*show_page_num;
+        log('start_page', start_page);
+        var i=1;
+        var print_page="";
+
+
+        log('total_page', total_page);
+        html = '<nav class="d-flex flex-column"><ul class="pagination justify-content-center">';
+
+        var a_1_prev_page= "";
+        var a_1_next_page= "";
+        var a_prev_page = "";
+        var a_next_page = "";
+
+        //if(page>1) a_1_prev_page="<li><a href='javascript:listPut("+(page-1)+")'>이전</a>&nbsp;</li>";
+        //if(page<total_page) a_1_next_page="<li>&nbsp;<a href='javascript:listPut("+(page+1)+")'>다음</a></li>";
+
+        if(page>show_page_num) {
+            prev_page=start_page;
+            a_prev_page="<li class=page-item><a class=page-link href='javascript:listPut("+prev_page+");'>《</a></li>";
+            //print_page+="<li><a href='javascript:listPut("+1+")'>1</a>&nbsp;...&nbsp;</li>";
+            print_page+="<li class=page-item><a class=page-link href='javascript:listPut("+1+");'>1</a>&nbsp;&nbsp;</li>";
+        }
+
+        while(i+start_page<=total_page&&i<=show_page_num) {
+            move_page=i+start_page;
+//            if(page==move_page) print_page+="<li>"+move_page+"&nbsp;</li>";
+            if(page==move_page) print_page+="<li class='page-item active'><a class=page-link>"+move_page+"</a>&nbsp;</li>";
+            else print_page+="<li class=page-item><a class=page-link href='javascript:listPut("+move_page+");'>"+move_page+"</a></li> ";
+            i++;
+        }
+
+        if(total_page>move_page) {
+            next_page=move_page+1;
+            a_next_page="<li class=page-item><a class=page-link href='javascript:listPut("+next_page+");'>》</a></li>";
+            print_page+="<li class=page-item><a class=page-link href='javascript:listPut("+total_page+");'>"+total_page+"</a></li>";
+        }
+
+        html += a_1_prev_page + a_prev_page + print_page + a_next_page + a_1_next_page;
+
+        html += '</ul></nav>';
+        pageDiv.innerHTML = html;
+        //console.log(new Date().toISOString(), 'listPut end');
+    }
+
+
+    function viewIss(idx){
+        var url = 'dos/C_Drv'
+                + songs[idx].path.replace(/\\/g,'/').substring(2)
+                + '/'+songs[idx].filename+'.ISS';
+
+        if(!songs[idx].isssize){
+            alert(url+' 파일이 없습니다.');
+        } else{
+            location.href = 'iss.html?url='+encodeURIComponent(url);
+        }
+    }
+
+    function viewIms(idx){
+        var url = 'dos/C_Drv'
+                + songs[idx].path.replace(/\\/g,'/').substring(2)
+                + '/'+songs[idx].filename+'.IMS';
+
+        if(!songs[idx].imssize){
+            alert(url+' 파일이 없습니다.');
+        } else{
+            location.href = '/ims/ims.html?url='+encodeURIComponent(url)+'&d='+songs[idx].duration;
+        }
+    }
+
+
+    var lstFile = [
+             'dos/C_Drv/MUSIC/DATA/ALLADLIB/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/BEST/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/COLLECT/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/GAMEBGM/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/GAMEBGM/GODDES/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/IMS&ISS/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/IMSDATA/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/IMS1/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/IMS2/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/IMS3/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/IMS4/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/IMS_DATA/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/MUSIC/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/OCP/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/DATA/SONGNEW/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/MMPLAY/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/OCPLAY/(_IMS_).LST'
+            ,'dos/C_Drv/MUSIC/YMPLAY/(_IMS_).LST'
+        ];
+
+    window.addEventListener("click", function(ev){
+        if(ev.target.id == 'chkIss'){
+            isIss = !isIss;
+            listPut(1);
+        }
+    });
+
+    window.addEventListener("load", function(e){
+        log('window.onload');
+        //console.log(new Date().toJSON(), 'window.onload')
+        //Ajax('(_IMS_)_1.LST',loadList);
+        //Ajax('(_IMS_)_4.LST',loadList);
+        //Ajax('(_IMS_)_49.LST',loadList);
+        //Ajax('(_IMS_)_72.LST',loadList);
+        //Ajax('(_IMS_)_115.LST',loadList);
+        //Ajax('(_IMS_)_562.LST',loadList);
+//131634
+        //Ajax('dos/C_Drv/MUSIC/MUSIC/(_IMS_).LST');
+        //Ajax(lstFile[0]);
+        //Ajax(lstFile[1]);
+        //Ajax(lstFile[2]);
+        //Ajax(lstFile[3]);
+        //Ajax(lstFile[4]);
+        //Ajax(lstFile[5]);
+        //Ajax(lstFile[6]);
+        //Ajax(lstFile[7]);
+        //Ajax(lstFile[8]);
+        lstFile.forEach((item)=>{ new Ajax(item) });
+
+        search.onkeydown = (ev)=>{
+//            console.log(ev.key);
+            if(ev.key == 'Enter') listPut(1); // 검색어 입력창에 Enter 이면 목록출력
+            //listPut(1); // 검색어 입력창에 Enter 이면 목록출력
+        }
+        search.onkeyup = (ev)=>{
+            console.log(ev.key);
+            listPut(1); // 검색어 입력창에 Enter 이면 목록출력
+        }
+    });
+
+  </script>
+</head>
+<body>
+<div style="text-align:right;">
+  <input type="text" name="search" id=search>
+  <button onclick="listPut(1)">검색</button>
+</div><div id=totalDiv>0</div>
+<div id=listDiv></div>
+<br>
+<div id=pageDiv></div>
+
+</body>
+</html>

@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <title>IMS&ISS List</title>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>IMS&ISS List's</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+  <!-- <meta name="viewport" content="height=device-height, initial-scale=1, maximum-scale=2"> -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <!--<link href="reset.css?v=<?=filemtime('reset.css')?>" rel="stylesheet">-->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {background-color:#181818;color:#666666;}
+    body {background-color:#181818;color:#bbbbbb;}
 
     input {
         background-color:#666666;
@@ -31,7 +35,6 @@
         /**/text-decoration:none;/**/
     }
     #pageDiv {
-        text-align:center;
     }
     table {
         width:100%;
@@ -88,15 +91,90 @@ input[id="chkIss"]:checked + label::after{
         white-space:nowrap;
         overflow: hidden;
     }
+    #listDiv {
+            min-width: 620px;
+    }
 
     #totalDiv {
         position: fixed;
         top: 16px;
         left:5px;
     }
+    .searchClear {
+        margin: 0;
+        padding: 1px 2px 4px 3px;
+        line-height: 70%;
+        position: absolute;
+        top: 5px;
+        right: 66px;
+        border: 0px;
+        font-size: 20pt;
+    }
+
+
+@media only screen and (-webkit-min-device-pixel-ratio: 2) {
+  /* iPhone 4-specific styles go here */
+}
+
+@media not all and (min-resolution:.001dpcm)
+{ @supports (-webkit-appearance:none) {
+	/* 이 안에 Safari(10.1 이상)에서만 적용할 스타일 작성 */
+
+}}
+
+/* 아이폰x  375x635 */
+@media only screen and (min-device-width: 300px) and (max-device-width: 400px) {
+    /*
+    button:nth-child(2) {
+        width:56px;
+    }
+    */
+    input[name=search] {
+        width:200px;
+    }
+    .searchClear {
+        margin: 0;
+        padding: 1px 2px 4px 3px;
+        line-height: 70%;
+        position: absolute;
+        top: 7px;
+        right: 90px;
+        border: 0px;
+        font-size: 20pt;
+    }
+    #pageDiv {
+        min-width: 650px;
+    }
+}
+    .justify-content-center {
+        justify-content: '';
+    }
+
+/* ipad 1366*917*/
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
+    .searchClear {
+        margin: 0;
+        padding: 1px 2px 4px 3px;
+        line-height: 70%;
+        position: absolute;
+        top: 7px;
+        right: 86px;
+        border: 0px;
+        font-size: 20pt;
+    }
+    * {
+        /*font-size:14pt;*/
+    }
+    /*Table > tbody > tr > td { white-space:nowrap; }*/
+    Table > tbody > tr { height:38px; }
+}
   </style>
-  <script src="kssmcode.js?v1.0"></script>
+  <script src="kssmcode.js?v=<?=filemtime('kssmcode.js')?>"></script>
+  <script src="lib.js?v=<?=filemtime('lib.js')?>"></script>
+  <!-- <script type="module" src="lib.js?v=<?=filemtime('lib.js')?>"></script> -->
   <script>
+    //import {lib} from './lib.js';
+
     Number.prototype.to2 = function(){return this<10?'0'+this:this;}
     Number.prototype.toDate = function(){
             //return new Date(1980,0,this).toJSON().substring(2,10)
@@ -104,7 +182,7 @@ input[id="chkIss"]:checked + label::after{
             var m=   (this>>5)&0x000f;
             var d=    this    &0x001f;
             if(y>=100) y-=100;
-            return y+'-'+m.to2()+'-'+d.to2();
+            return y.to2()+'-'+m.to2()+'-'+d.to2();
         }
     Number.prototype.format = function(){return new String(this).replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ",")}
     Number.prototype.timeFormat = function(){ return Math.floor(this/60)+':'+(this%60).to2(); }
@@ -113,6 +191,7 @@ input[id="chkIss"]:checked + label::after{
             , [new Date().toJSON()].concat(Array.prototype.slice.call(arguments, 0)) );
     }
 
+var isIphoneX = navigator.platform == 'iPhone';
 var songs = [];
 var ajaxcounter = 0;
 var _xhr;
@@ -139,81 +218,27 @@ var _xhr;
           if (this.status == 200) {
               //callback(this.response);
               //log('xhr.responseURL',xhr.responseURL);
-              new loadList(this.response)
+              loadList(this.response)
               ajaxcounter--;
               //console.log('ajaxcounter',ajaxcounter)
-              if(!ajaxcounter) listPut(1);
+              //if(!ajaxcounter) listPut(1);
+              if(!ajaxcounter){
+                  setTimeout(()=>{
+                    var total_page=parseInt((songs.length-1)/page_num)+1; // 전체 페이지 구함
+                    var rnd = Math.floor(Math.random()*total_page)%total_page+1;
+                    listPut( rnd );
+                  },100);
+              }
           }
         };
         xhr.send();
     }
 
-    var uInt8Array;
     function loadList(rs){
-        uInt8Array = new Uint8Array(rs);
-        //log('uInt8Array', uInt8Array);
-        ///////////////////////////////////////////////////////////////////////
-        var getByte = (()=>{
-            var position = 0;
-            return (length, type)=>{
-                var start = position;
-                position += length;
-                type=type||'';
-                if(type=='int8'){
-                    return uInt8Array[start];
-                } else if(type=='int16'){
-                    return uInt8Array[start+1]<< 8|uInt8Array[start  ];
-                } else if(type=='int32'){
-                    return uInt8Array[start+3]<<24|uInt8Array[start+2]<<16
-                          |uInt8Array[start+1]<< 8|uInt8Array[start  ];
-                } else {
-                    returnVal='';
-                    isErr = false;
-                    for(var i=0; i<length; i++){
-                        var h = uInt8Array[ start+i   ];
-                        //console.log(h)
-                        if(h == 0x00) break; // 쓰레기값이 출력되서 EOF?처리함
-                        var l = '';
-                        if(uInt8Array.length > start+i+1) l = uInt8Array[ start+i+1 ];
-
-                        if(h & 0x80) {
-                            if (l == 0x00) {// continue;	/* 하위 바이트 ERROR */
-                                returnVal += '[]';
-                                continue;
-                            }
-
-                            var ch = ((h << 8) & 0xff00) + (l & 0xff);
-                            if (ch >= 0x8861 && ch <= 0xd3b7) {	/* '가'부터 '힝'까지 2,350자 */
-                                returnVal+=KSSMCODE[ch] || '';
-                            } else if (ch >= 0xd931 && ch <= 0xdef1) {	/* 조합형 symbol */
-                                if(!KSSMCODE[ch]){
-                                    isErr = true;
-                                    console.log('MM', h, l, ch, ch.toString(16));
-                                }
-                                //returnVal+='MM';
-                                returnVal+=KSSMCODE[ch] || 'MM';
-                            } else {	/* 초성 'ㄱ', 종성 자음, 모음 */
-                                if(!KSSMCODE[ch]){
-                                    isErr = true;
-                                    console.log('HH', h, l, ch, ch.toString(16));
-                                }
-                                //returnVal+='HH';
-                                returnVal+=KSSMCODE[ch] || 'HH';
-                            }
-                            i++;
-                        } else {
-                            returnVal += String.fromCharCode(uInt8Array[start+i]).replace(/\x00/g,'');
-                            //returnVal += String.fromCharCode(uInt8Array[start+i]);
-                        }
-                    }
-                    //if(length==64) 
-                    //if(length>2) 
-                    if(isErr)
-                    console.log(returnVal);
-                    return returnVal;
-                }
-            }
-        })();
+        var getByte = new GetByte(rs);
+        //console.log('rs.response',rs.response);
+        //console.log('new Uint8Array(rs.response)',new Uint8Array(rs.response));
+        //uInt8Array = new Uint8Array(rs.response);
 
         // ocplay ims 목록 파일의 해더 정의
         function Header(){
@@ -280,7 +305,7 @@ var _xhr;
             song.index = songs.length;
             songs.push( song );
             //if(isErr) log('idx',i);
-            if(isErr) log('idx',songs.length-1, );
+            if(GetByte.isErr) log('idx',songs.length-1, );
         }
         //log('songs', songs);
     }
@@ -290,28 +315,50 @@ var _xhr;
     var page_num = 20;
     var show_page_num = 10;
     var isIss = true;
-    var isFilename = true;
-    var isTitle = true;
+    //var isFilename = true;
+    //var isTitle = true;
+    // 정렬관련 변수
+    var sort={none:2,filename:2,title:2,duration:2,imssize:2,isssize:2,date:2
+             ,key:'none',icon:['▽','△','']};
+    function listSort(id){ // 정렬할 항목지정
+        sort.key = id;
+        sort[id] = (++sort[id])%2;
+        listPut(1);
+    }
+    // 리스트를 페이지 단위로 출력하는 함수
     function listPut(page){
-        console.log(new Date().toISOString(), 'listPut Start');
+        //console.log(new Date().toISOString(), 'listPut Start');
         //var list = songs.filter( (el)=>{return el.title.indexOf(search.value)>-1} );
-        var list = songs.filter( (el)=>{
+
+        var list = songs.filter( (el)=>{ // 검색어가 있는경우 검색어를 필터함.
                 if(isIss){
-                    return el.title.replace(/[ ]/g,'').indexOf(search.value)>-1;
-                } else {
-                    return el.title.replace(/[ ]/g,'').indexOf(search.value)>-1 && el.isssize;
+                    return el.title.replace(/[ ]/g,'').toUpperCase()
+                            .indexOf(search.value.toUpperCase())>-1;
+                } else { // iss가 있는것만 보는 경우
+                    return el.title.replace(/[ ]/g,'').toUpperCase()
+                            .indexOf(search.value.toUpperCase())>-1 && el.isssize;
                 }
             } );
+        if(sort.key!='none'){
+            var a = sort[sort.key]? 1:-1;
+            var d = sort[sort.key]?-1: 1;
+            list.sort( (v1,v2)=>{return v1[sort.key]>v2[sort.key]?a:v1[sort.key]<v2[sort.key]?d:0;} )
+        }
+
         //console.log(list);
         var total = list.length;
         totalDiv.innerText = total.format();
         var html='<table border=0 cellspacing=1 style="table-layout: fixed;">'
-        html += '<colgroup><col width="40px" /><col width="80px" /><col /><col width="40px" /><col width="70px" /><col width="60px" /><col width="80px" /></colgroup>';
+        html += '<colgroup><col width="40px" /><col width="85px" /><col /><col width="40px" /><col width="70px" /><col width="60px" /><col width="80px" /></colgroup>';
         html += '<tr><th>No.</th>';
-        html += '<th>파일명<label id="chkFilename"></label></th>';
-        html += '<th>노래 제목<label id="chkTitle"></label></th>';
-        html += '<th>시간</th><th>Ims</th>'
-        html += '<th>Iss<input type="checkbox" id="chkIss"'+(isIss?'':' checked')+'><label for="chkIss"></label></th><th>Date</th></tr>';
+        html += '<th onclick="listSort(\'filename\')">파일명'+sort.icon[sort.filename]+'</th>';
+        html += '<th onclick="listSort(\'title\')">노래 제목'+sort.icon[sort.title]+'</th>';
+        html += '<th onclick="listSort(\'duration\')">시간'+sort.icon[sort.duration]+'</th>'
+        html += '<th onclick="listSort(\'imssize\')">Ims'+sort.icon[sort.imssize]+'</th>';
+        html += '<th id=isssize><a href=javascript:listSort("isssize")>Iss</a>'
+              +sort.icon[sort.isssize]
+              +'<input type="checkbox" id="chkIss"'+(isIss?'':' checked')+'><label for="chkIss"></label></th>';
+        html += '<th onclick="listSort(\'date\')"'+sort.icon[sort.date]+'>Date</th></tr>';
         var start_num=(page-1)*page_num; // 페이지 수에 따른 출력시 첫번째가 될 글의 번호 구함
         //log('total', total);
         //log('start_num', start_num);
@@ -321,15 +368,15 @@ var _xhr;
             var itemNo = j;
             var listNo = itemNo + 1;
             var iss = list[itemNo].isssize;
-            if(iss) iss = '<a href="javascript:viewIss('+list[itemNo].index+')">'+ iss.format() +'</a>';
+            if(iss) iss = '<a href="javascript:viewIss('+list[itemNo].index+')" title="'+list[itemNo].path+'">'+ iss.format() +'</a>';
             else    iss = '-'; //'&lt;None>';
             html += '<tr>';
-            html += '<td align=center>'+ listNo +'</td>';
-            html += '<td><a href="javascript:viewIms('+list[itemNo].index+')" title="'+list[itemNo].path+'">'+ list[itemNo].filename +'</a></td>';
+            html += '<td align=center onclick="viewIms('+list[itemNo].index+')">'+ listNo +'</td>';
+            html += '<td><a href="javascript:ocplay('+list[itemNo].index+')" title="'+list[itemNo].path+'">'+ list[itemNo].filename +'</a></td>';
             //html += '<td><a href="javascript:viewIss('+list[itemNo].index+')">'+ list[itemNo].title.replace(/[ ]/g,'&nbsp;') +'</a></td>';
             html += '<td class="title">'+ list[itemNo].title.replace(/[ ]/g,'&nbsp;') +'</td>';
             //html += '<td class="title"><pre>'+ list[itemNo].title +'</pre></td>';
-            html += '<td align=center>'+ list[itemNo].duration.timeFormat() +'</td>';
+            html += '<td align=center onclick="hts('+list[itemNo].index+')" align=center>'+ list[itemNo].duration.timeFormat() +'</td>';
             html += '<td align=right><a href="javascript:viewIms('+list[itemNo].index+')" title="'+list[itemNo].path+'">'+ list[itemNo].imssize.format() +'</a></td>';
             //html += '<td align=right><a href="javascript:viewIss('+list[itemNo].index+')">'+ list[itemNo].isssize.format() +'</a></td>';
             html += `<td align=right>${iss}</td>`;
@@ -341,13 +388,14 @@ var _xhr;
 
         var total_page=parseInt((total-1)/page_num)+1; // 전체 페이지 구함
         var start_page=parseInt((page-1)/show_page_num)*show_page_num;
-        log('start_page', start_page);
+        //log('start_page', start_page);
         var i=1;
         var print_page="";
 
 
-        log('total_page', total_page);
-        html = '<nav class="d-flex flex-column"><ul class="pagination justify-content-center">';
+        //log('total_page', total_page);
+        var align = isIphoneX?'':' justify-content-center';
+        html = '<nav class="d-flex flex-column"><ul class="pagination'+align+'">';
 
         var a_1_prev_page= "";
         var a_1_next_page= "";
@@ -361,13 +409,13 @@ var _xhr;
             prev_page=start_page;
             a_prev_page="<li class=page-item><a class=page-link href='javascript:listPut("+prev_page+");'>《</a></li>";
             //print_page+="<li><a href='javascript:listPut("+1+")'>1</a>&nbsp;...&nbsp;</li>";
-            print_page+="<li class=page-item><a class=page-link href='javascript:listPut("+1+");'>1</a>&nbsp;&nbsp;</li>";
+            print_page+="<li class=page-item><a class=page-link href='javascript:listPut("+1+");'>1</a></li>";
         }
 
         while(i+start_page<=total_page&&i<=show_page_num) {
             move_page=i+start_page;
 //            if(page==move_page) print_page+="<li>"+move_page+"&nbsp;</li>";
-            if(page==move_page) print_page+="<li class='page-item active'><a class=page-link>"+move_page+"</a>&nbsp;</li>";
+            if(page==move_page) print_page+="<li class='page-item active'><a class=page-link>"+move_page+"</a></li>";
             else print_page+="<li class=page-item><a class=page-link href='javascript:listPut("+move_page+");'>"+move_page+"</a></li> ";
             i++;
         }
@@ -388,8 +436,8 @@ var _xhr;
 
     function viewIss(idx){
         var url = 'dos/C_Drv'
-                + songs[idx].path.replace(/\\/g,'/').substring(2)
-                + '/'+songs[idx].filename+'.ISS';
+                + escape(songs[idx].path.replace(/\\/g,'/').substring(2)
+                + '/'+songs[idx].filename+'.ISS');
 
         if(!songs[idx].isssize){
             alert(url+' 파일이 없습니다.');
@@ -400,14 +448,51 @@ var _xhr;
 
     function viewIms(idx){
         var url = 'dos/C_Drv'
-                + songs[idx].path.replace(/\\/g,'/').substring(2)
-                + '/'+songs[idx].filename+'.IMS';
+                + escape(songs[idx].path.replace(/\\/g,'/').substring(2)
+                + '/'+songs[idx].filename);
 
         if(!songs[idx].imssize){
             alert(url+' 파일이 없습니다.');
         } else{
-            location.href = '/ims/ims.html?url='+encodeURIComponent(url)+'&d='+songs[idx].duration;
+            location.href = '/ims/ims.html?url=/iss/'+encodeURIComponent(url)+'&d='+songs[idx].duration;
         }
+    }
+
+    function ocplay(idx){
+        console.log(songs[idx])
+        var url = 'ocplay.php?path=dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
+                + '&file=' + escape(songs[idx].filename);
+//        var url = 'ocplay.php?d=1234567890';
+        console.log(url);
+        /**/
+        fetch(url)
+            .then(res => {
+                console.log(res);
+                if(res.status === 200) return res.text();
+                //location.href='jsdos.html'
+            }).then(text =>{
+                console.log(text);
+                location.href=`jsdos.html?no=${text}`
+            })
+        /**/
+    }
+
+    function hts(idx){
+        console.log(songs[idx])
+        var url = 'hts.php?path=dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
+                + '&file=' + songs[idx].filename;
+//        var url = 'ocplay.php?d=1234567890';
+        console.log(url);
+        fetch(url)
+            .then(res => {
+                console.log(res);
+                if(res.status === 200) return res.text();
+                //location.href='jsdos.html'
+            }).then(text =>{
+                console.log(text);
+                location.href=`jsdos.html?no=${text}`
+            })
+        /**/
     }
 
 
@@ -433,14 +518,59 @@ var _xhr;
         ];
 
     window.addEventListener("click", function(ev){
+        //alert(ev.target.id)
+        //search.value = ev.target.id;
         if(ev.target.id == 'chkIss'){
             isIss = !isIss;
             listPut(1);
+        }else if(ev.target.id == 'isssize'){ // ipad 에선 안됨
+            listSort('isssize');
         }
+        window._ev = ev;
     });
+
+    window.addEventListener("mousedown", function(event){
+        touchEl = event.target;
+        //alert("touchstart"+event.touches[0].target.tagName);
+        //if(touchEl.tagName == 'TD')
+            touchEl.style.backgroundColor='#666';
+    });
+    window.addEventListener("mouseup", function(event){
+        //alert("touchend");
+        //alert("touchend"+event.touches[0].target.tagName);
+        touchEl.style.backgroundColor='';
+    });
+
+    var touchEl;
+    window.addEventListener("touchstart", function(event){
+        touchEl = event.touches[0].target;
+        //alert("touchstart"+event.touches[0].target.tagName);
+        //if(touchEl.tagName == 'TD')
+            touchEl.style.backgroundColor='#666';
+    });
+    window.addEventListener("touchend", function(event){
+        //alert("touchend");
+        //alert("touchend"+event.touches[0].target.tagName);
+        touchEl.style.backgroundColor='';
+    });
+
+//    alert( 'ontouchstart' in document.documentElement )
+var clickEvent = (function() {
+  if ('ontouchstart' in document.documentElement === true) {
+    return 'touchstart';
+  } else {
+    return 'click';
+  }
+})();
+window.addEventListener(clickEvent,function(){
+  // ...
+  //alert("touch");
+});
 
     window.addEventListener("load", function(e){
         log('window.onload');
+        //alert(window.innerWidth + ' x ' +window.innerHeight)
+        //alert(window.navigator.userAgent)
         //console.log(new Date().toJSON(), 'window.onload')
         //Ajax('(_IMS_)_1.LST',loadList);
         //Ajax('(_IMS_)_4.LST',loadList);
@@ -467,15 +597,21 @@ var _xhr;
             //listPut(1); // 검색어 입력창에 Enter 이면 목록출력
         }
         search.onkeyup = (ev)=>{
-            console.log(ev.key);
+            //console.log(ev.key);
             listPut(1); // 검색어 입력창에 Enter 이면 목록출력
         }
+
+        //alert(navigator.platform)
+        if(navigator.platform == 'Win32') page_num = 30;   // iPhoneX
+        if(navigator.platform == 'iPhone'){ page_num = 19; show_page_num=10;}  // iPhoneX
+        if(navigator.platform == 'Linux armv81') page_num = 30; // ALLDOCUBE iPlay40
     });
 
   </script>
 </head>
 <body>
 <div style="text-align:right;">
+  <button class=searchClear onclick="search.value='';listPut(1);">x</button>
   <input type="text" name="search" id=search>
   <button onclick="listPut(1)">검색</button>
 </div><div id=totalDiv>0</div>

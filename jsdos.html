@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>js-dos 6.22</title>
+  <!-- <meta name="viewport" content="width=device-width,minimum-scale=1.0, maximum-scale=1.0,user-scalable=yes" /> -->
+  <!-- <meta content="initial-scale=1, minimum-scale=1, width=device-width" name="viewport"> -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- <meta name="apple-mobile-web-app-status-bar-style" content="black" /> -->
+  <script src="js-dos.js"></script>
+  <style>
+
+    html, body, canvas, .dosbox-container {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color:#181818;
+    }
+    canvas {
+    /*
+        width : 640px; 
+        height: 480px;
+    */
+        width:92%;
+        height:92%;
+    }
+
+
+  </style>
+  <script>
+    var params = URLSearchParams && new URLSearchParams(document.location.search.substring(1));
+    var no = params && params.get("no") && decodeURIComponent(params.get("no"));
+    if(no){
+        var file = no.split('.')[0];
+        var ntmn = no.split('.')[1];
+    }
+
+    var dos;
+    var _fs;
+    var _main;
+
+    no = no||'ocplay.1234567890'
+    file = file||'ocplay'
+
+    const showMobileUrlBar = () => {
+      let i = 0
+      const to = setInterval(() => {
+        document.body.scrollTop = -1
+        // clear timeout after 250 ms and reset scrollTop to 0
+        if (i++ > 25) {
+          clearInterval(to)
+          document.body.scrollTop = 0
+        }
+      }, 10)
+    }
+
+    function SDL_Quit() { // 안됨
+        console.log('-----------------------');
+    }
+
+    function run(v){
+      dos = Dos(document.getElementById("jsdos"), {
+//        wdosboxUrl: "https://js-dos.com/6.22/current/wdosbox.js",
+        wdosboxUrl: "wdosbox.js",
+        cycles: 1000,
+        //cycles: "max",
+        autolock: true,
+        nosound:false,
+      }).ready(function (fs, main) {
+          _fs=fs;
+          _main=fs;
+       fs.extract(`zip/${no}.zip`).then(function () {
+        main(["-c", `\\${file}\\play.bat`]).then(function (ci) {
+//            DosController.Move(ci.getParentDiv(), ci.getKeyEventConsumer());
+//            DosController.Qwerty(ci.getParentDiv(), ci.getKeyEventConsumer());
+            var msg='';
+            window.ci = ci;
+            // 이동 컨트롤러
+            //DosController.Move(ci.getParentDiv(), ci.getKeyEventConsumer());
+            // 쿼티 컨트롤러
+            //DosController.Qwerty(ci.getParentDiv(), ci.getKeyEventConsumer());
+            //ci.api.canvas.focus();
+            ci.listenStdout(function (message) {
+
+              if(message.charCodeAt(0)==10)msg=''; // 엔터문자 이후 문자수집(트래킹?용)
+              else msg+=message;
+              console.log(message, message.charCodeAt(0),msg)
+
+              if(msg.indexOf('hyunee')>-1){ // 종료
+                setTimeout(function () {
+                  fetch(`${file}.php?no=${ntmn}`).then(res => {
+                    ci.exit();
+                    history.go(-1);
+                  })
+                }, 1000);
+              }
+
+              /*
+              if (message.startsWith("C:\\OCPLAY")) {
+                  console.log('test')
+              }
+              */
+
+            });
+/*
+            window.ci = ci;
+              setTimeout(function () {
+                ci.exit();
+              }, 1000)
+*/
+
+        });
+       });
+      });
+    }
+    window.onload = function(){
+        run(location.href.split('?p=')[1]||'GAME');
+        //jsdos.style.width='100%';
+        //TweenMax.to(window, 0.5, {scrollTo: 0, onComplete: showMobileUrlBar})
+        showMobileUrlBar();
+    }
+
+    let analyticsData = { no:no, file:file, ntmn:ntmn };
+
+    window.addEventListener("unload", function() {
+      navigator.sendBeacon(`${file}.php?no=${ntmn}`, JSON.stringify(analyticsData));
+    });
+
+    function keyboard(key){
+        console.log('key:',key);
+        //document.body.dispatchEvent(new KeyboardEvent('keydown', {'key': key}));
+        jsdos.dispatchEvent(new KeyboardEvent('keydown', {'key': key}));
+    }
+  </script>
+</head>
+
+<body>
+  <div class="mydosbox"><canvas id="jsdos" width="640px" height="480px"></canvas></div>
+  <div class="qwerty-key"></div>
+
+    <div class="qwerty-container" style="visibility: hidden;">
+        <div>ENTER CHARS:</div>
+
+        <div class="qwerty-input-row">
+            <div>:&gt;&nbsp;</div>
+            <input class="qwerty-input" value="" tabindex="1" style="width: 2ch;">
+            <!-- <div class="qwerty-cursor"></div> -->
+            <div class="qwerty-send">Send</div>
+        </div>
+    </div>
+
+    <div id="k1" onclick="keyboard('1')">[ 1 ]</div>
+</body>
+
+</html>
+
+<script>
+/** /
+     <div class="dosbox-container"><canvas width="320" height="200" style="image-rendering: pixelated;"></canvas><div class="dosbox-overlay" style="display: none">
+        <div class="dosbox-loader">
+            <div class="st-loader">
+                <span class="equal"></span>
+            </div>
+            <div class="dosbox-loader-message">…ng /6.22/current/test/digger.zip 100%</div>
+        </div>
+        <div class="dosbox-powered">
+            Powered by &nbsp;<a href="https://js-dos.com">js-dos.com</a> (6.22)
+        </div>
+    </div><button style="padding-left: 15px; padding-right: 15px; height: 50px; background: lightgray; border-width: 1px; border-style: solid; border-color: white darkgray darkgray white; position: absolute; bottom: 0px; left: 48px; margin-left: 15px;">Fullscreen</button><div class="qwerty-key"></div><div class="qwerty-container" style="visibility: hidden;">
+        <div>ENTER CHARS:</div>
+
+        <div class="qwerty-input-row">
+            <div>:&gt;&nbsp;</div>
+            <input class="qwerty-input" value="" tabindex="1" style="width: 2ch;">
+            <!-- <div class="qwerty-cursor"></div> -->
+            <div class="qwerty-send">Send</div>
+        </div>
+    </div></div>
+/**/
+</script>
+
+  <script>
+/*
+    let dtimeIt = 0;
+    let dtimeStart = 0;
+    let dtime = 0;
+    Dos(document.getElementById("jsdos"), {
+      wdosboxUrl: "https://js-dos.com/6.22/current/wdosbox.js",
+      cycles: "max",
+      autolock: false,
+    }).ready(function (fs, main) {
+      fs.extract("https://js-dos.com/6.22/current/test/dhry2.zip").then(function () {
+        main(["-c", "dhry_2.exe"]).then(function (ci) {
+          const numberOfRuns = /Number Of Runs:\s+([0-9.]+)/;
+          const result = {};
+          ci.listenStdout(function (message) {
+            const numberOfRunsMatch = numberOfRuns.exec(message);
+            if (message.startsWith("~>dtime")) {
+              dtimeIt++;
+              if (dtimeIt % 2 == 0) {
+                dtime = (performance.now() - dtimeStart) / 1000;
+              } else {
+                dtimeStart = performance.now();
+              }
+            } else if (numberOfRunsMatch) {
+              const runs = Number.parseFloat(numberOfRunsMatch[1]);
+              result['oneRunMSecs'] = Math.round(dtime * 1000000 / runs * 100) / 100;
+              result['dhrystonesPerSec'] = Math.round(runs / dtime * 100) / 100;
+              result['vaxMips'] = Math.round(result['dhrystonesPerSec'] / 1757 * 100) / 100; 
+
+              document.getElementById("results").style.visibility = "visible";
+              document.getElementById("oneRunMSecs").innerHTML = result["oneRunMSecs"];
+              document.getElementById("dhrystonesPerSec").innerHTML = result["dhrystonesPerSec"];
+              document.getElementById("vaxMips").innerHTML = result["vaxMips"];
+              document.getElementById("pctype").innerHTML = getComparablePc(result['vaxMips']);
+
+              var message = "#jsdos DOS Dhrystone benchmark rated your PC as " + getComparablePc(result['vaxMips']).trim() + "! Try again! ";
+              document.getElementById("tweet").dataset.text = message;
+              var twitterScript = document.createElement('script');
+              twitterScript.src = 'https://platform.twitter.com/widgets.js';
+              document.body.appendChild(twitterScript);
+
+              document.getElementById('vk').innerHTML = VK.Share.button({
+                url: 'https://js-dos.com/6.22/current/test/dhry2.html',
+                noparse: true,
+                title: message,
+              }, {
+                type: 'round_nocount',
+              });
+
+              setTimeout(function () {
+                ci.exit();
+              }, 1000)
+            }
+          });
+        });
+      });
+    });
+
+    function getComparablePc(mips) {
+      var index = 0;
+      while ((index * 2 + 1) < results.length) {
+        if (results[index * 2 + 1] >= mips) {
+          break;
+        }
+
+        index++;
+      }
+
+      index = Math.min((results.length / 2 - 1), index);
+      return results[index * 2];
+    }
+
+    // Reuslts from 
+    // http://www.roylongbottom.org.uk/dhrystone%20results.htm
+    var results = [
+      "AMD 80386 40MHz", 13.7,
+      "IBM 486D2 50MHz", 22.4,
+      "80486 DX2 66MHz", 35.3,
+      "IBM 486BL 100MHz", 40.9,
+      "AMD 5X86 133MHz", 84.5,
+      "Pentium 75MHz", 87.1,
+      "Cyrix P150 120MHz", 160,
+      "Pentium 100MHz", 122,
+      "Cyrix PP166 133MHz", 180,
+      "IBM 6x86 150MHz", 188,
+      "Pentium 133MHz", 181,
+      "Pentium 166MHz", 189,
+      "Cyrix PR233 188MHz", 232,
+      "Pentium 200MHz", 269,
+      "Pentium MMX 200MHz", 276,
+      "AMD K6 200MHz", 289,
+      "Pentium Pro 200MHz", 312,
+      "Celeron A 300MHz", 484,
+      "Pentium II 300MHz", 477,
+      "AMD K62 500MHz", 606,
+      "AMD K63 450MHz", 645,
+      "Pentium II 450MHz", 713,
+      "Celeron A 450MHz", 720,
+      "Pentium III 450MHz", 722,
+      "Pentium III 600MHz", 959,
+      "Athlon 600MHz", 942,
+      "Duron 600MHz", 999,
+      "Pentium III 1000MHz", 1595,
+      "PIII Tualatin 1200MHz", 1907,
+      "Pentium 4 1700MHz", 1843,
+      "Athlon Tbird 1000MHz", 1659,
+      "Duron 1000MHz", 1674,
+      "Celeron M 1295MHz", 2273,
+      "Atom 1600MHz", 1828,
+      "Pentium 4 1900MHz", 2003,
+      "Atom 1666MHz", 1948,
+      "P4 Xeon 2200MHz", 2265,
+      "Atom Z8300 1840MHz", 2686,
+      "Athlon 4 1600MHz", 2830,
+      "Pentium M 1862MHz", 3933,
+      "Ath4 Barton 1800MHz", 3172,
+      "Pentium 4E 3000MHz", 3553,
+      "Athlon XP 2080MHz", 3700,
+      "Turion 64 M 1900MHz", 3742,
+      "Pentium 4 3066MHz", 4012,
+      "Opteron 1991MHz", 3985,
+      "Core 2 Duo M 1830MHz", 4952,
+      "Athlon XP 2338MHz", 4160,
+      "Athlon 64 2150MHz", 4288,
+      "Pentium 4 3678MHz", 4227,
+      "Athlon 64 2211MHz", 4462,
+      "Celeron C2 M 2000MHz", 5275,
+      "Core 2 Duo 1 CP 2400MHz", 6446,
+      "Core i5 2467M 2300MHz", 4752,
+      "Phenom II 1 CP 3000MHz", 7615,
+      "Core i7 930 3066MHz", 8684,
+      "Core i7 860 3460MHz", 9978,
+      "Core i7 3930K 3800MHz", 11197,
+      "Core i7 4820K 3900MHz", 11867,
+      "Core i7 4820K 3900MHz", 11978,
+      "Core i7 3930K", 13877,
+    ];
+*/
+  </script>

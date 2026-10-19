@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>IMS/ISS AUDIO PLAYER v1.00</title>
+    <!-- 파트 2에서 제공하는 스타일시트 연결 -->
+    <link rel="stylesheet" href="list.mobile.css">
+  <script src="kssmcode.js"></script>
+  <script src="lib.js"></script>
+</head>
+<body>
+
+    <!-- DOS 스타일 상단 배너 -->
+    <div class="dos-header">
+        === OCP-PLAY AUDIO INDEX SYSTEMS v1.00 ===
+    </div>
+
+    <!-- 상태창 및 명령어 입력(검색) 패널 -->
+    <div class="dos-panel">
+        <div class="dos-stats">
+            TOTAL FILES: <span id="totalDiv">0</span> ITEMS LOADED.<br>
+            SYSTEM STATUS: READY.
+        </div>
+        <div class="search-container">
+            <span class="search-label">C:\&gt;SEARCH :</span>
+            <input type="text" id="search" name="search" placeholder="Enter song title..." autocomplete="off">
+            <span class="searchClear" onclick="document.getElementById('search').value=''; listPut(1);">[X]</span>
+        </div>
+    </div>
+
+    <!-- 음원 리스트 테이블 가로 스크롤 프레임 -->
+    <div class="table-wrapper" id="listDiv">
+        <!-- 자바스크립트(파트3)가 테이블을 동적으로 렌더링하는 영역 -->
+    </div>
+
+    <!-- 하단 페이지네이션 컨트롤러 -->
+    <div id="pageDiv">
+        <!-- 자바스크립트(파트3)가 페이지 번호를 렌더링하는 영역 -->
+    </div>
+
+    <!-- 파트 3에서 제공하는 스크립트 연결 -->
+    <script src="list-parser.js"></script>
+    <script src="list.mobile.js"></script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+/* --- DOS 감성 테마 변수 설정 --- */
+:root {
+    --dos-bg: #000000;          /* 제트 블랙 */
+    --dos-fg: #00ff00;          /* 터미널 그린 */
+    --dos-cyan: #00ffff;        /* 하이라이트 블루 */
+    --dos-gray: #aaaaaa;        /* 기본 텍스트 회색 */
+    --dos-dark-blue: #0000aa;   /* 노턴 커맨더 블루 헤더 */
+}
+
+@font-face {
+    font-family: NeoDunggeunmo;
+    src: url(https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@1.601/neodgm/neodgm.woff2) format("woff2"),url(https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@1.601/neodgm/neodgm.woff) format("woff");
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+}
+
+body {
+    /*background-color: var(--dos-bg);*/
+    background-color: #2b4b7c;
+    color: var(--dos-gray);
+    /*font-family: 'Courier New', Courier, monospace;*/
+    font-family: NeoDunggeunmo,"MS Sans Serif","Microsoft Sans Serif",sans-serif;
+    font-size: 14px;
+    margin: 0;
+    padding: 10px;
+    box-sizing: border-box;
+    line-height: 1.4;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 상단 메인 타이틀 바 */
+.dos-header {
+    background-color: #aaaaaa;
+    color: #000000;
+    text-align: center;
+    font-weight: bold;
+    padding: 2px 0;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+/* 상태창 영역 대괄호 더블 테두리 */
+.dos-panel {
+    border: 2px double var(--dos-gray);
+    padding: 8px;
+    margin-bottom: 10px;
+    background-color: #000000;
+}
+
+.dos-stats {
+    color: var(--dos-cyan);
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.search-label {
+    color: var(--dos-fg);
+    margin-right: 5px;
+    font-weight: bold;
+}
+
+input[type="text"] {
+    background-color: #111111;
+    color: var(--dos-fg);
+    border: 1px solid var(--dos-fg);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 4px 25px 4px 6px;
+    flex-grow: 1;
+    outline: none;
+}
+
+.searchClear {
+    position: absolute;
+    right: 8px;
+    color: #ff0000;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+/* 테이블 모바일 스크롤 프레임 */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--dos-gray);
+    background-color: #000000;
+    margin-bottom: 10px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+th {
+    background-color: var(--dos-dark-blue);
+    color: #ffffff;
+    font-weight: normal;
+    text-align: center;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--dos-gray);
+    cursor: pointer;
+}
+
+th:active {
+    background-color: var(--dos-cyan);
+    color: #000000;
+}
+
+td {
+    padding: 6px 4px;
+    border-bottom: 1px dashed #333333;
+    font-size: 16px;
+}
+tr:hover td {
+    background-color: #222222;
+    color: var(--dos-fg) !important;
+}
+
+tr:active td {
+    background-color: #222222;
+    color: var(--dos-fg) !important;
+}
+
+/* 정렬 및 여백 최적화 */
+html {
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+}
+
+td.center { text-align: center; text-wrap: nowrap; }
+td.right { text-align: right; }
+td.title {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+a {
+    color: var(--dos-cyan);
+    text-decoration: none;
+}
+a:hover, a:active {
+    text-decoration: underline;
+    color: var(--dos-fg);
+}
+
+/* ISS 필터용 커스텀 대괄호 체크박스 */
+#isssize label {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--dos-gray);
+    background: #000;
+    vertical-align: middle;
+    margin-left: 4px;
+    position: relative;
+    cursor: pointer;
+}
+input[type="checkbox"] { display: none; }
+input[type="checkbox"]:checked + label::after {
+    content: 'X';
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--dos-fg);
+    position: absolute;
+    left: 2px;
+    top: -2px;
+}
+
+/* 터미널 감성 페이지네이션 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    list-style: none;
+    padding: 0;
+    margin: 15px 0;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.page-item { display: inline; }
+
+.page-link {
+    display: block;
+    padding: 4px 8px;
+    color: var(--dos-gray);
+    border: 1px solid var(--dos-gray);
+    text-decoration: none;
+    background-color: #111111;
+}
+
+.page-item.active .page-link {
+    background-color: var(--dos-fg);
+    color: #000000;
+    border-color: var(--dos-fg);
+    font-weight: bold;
+}
+
+.page-item:not(.active) .page-link:active {
+    background-color: var(--dos-gray);
+    color: #000000;
+}
+
+.notitle {
+    color: var(--dos-gray);
+}
+@media (max-width: 599px) { /* iPlay40 이 600 이라서 599로 함. */
+    body { padding: 5px; font-size: 13px; }
+    .dos-panel { padding: 6px; }
+
+	table {
+		width: 100%;
+		border-collapse: collapse;
+		min-width: 350px;
+	}
+
+	td {
+		padding: 4px 4px 3px 4px;
+		border-bottom: 1px dashed #333333;
+		font-size: 16px;
+	}
+
+	tbody tr:nth-child(even) {
+		border-bottom: 1px solid var(--dos-gray) !important;
+	}
+}
+

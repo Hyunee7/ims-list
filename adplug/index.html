@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdPlug 가라오케 연주기</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <div class="dos-window">
+    <div class="title-bar">
+      <span>AdPlug 가라오케 연주기</span>
+      <span style="color: var(--color-yellow)">[■]</span>
+    </div>
+    
+    <div class="content-area">
+      <!-- 1. 춤추는 그래픽 이퀄라이저 모니터 스크린 -->
+      <canvas id="visualizer" class="visualizer-screen"></canvas>
+
+      <!-- 2. 고전 8배수 싱크 실시간 메인 자막 가사창 -->
+      <div id="lyricBox" class="lyric-screen auto-fit-box"><span>옥소리 애드립 노래방 시스템 준비 완료</span></div>
+
+      <!-- 곡 정보 실시간 한글 명판 판넬 -->
+      <div id="trackDisplay" class="panel" style="background:#fff; border:2px inset #000; padding:8px; margin-bottom:12px; font-size:13px;">
+        <div style="font-weight:bold; color:#0000FF; margin-bottom:4px;">🎵 현재 연주 트랙 정보</div>
+        <div><b>곡제목:</b> <span id="infoTitle">-</span></div>
+        <div><b>파일들:</b> <span id="infoAuthor">-</span></div>
+      </div>
+
+      <!-- 3. 실시간 재생 타임 레이블 및 탐색 바 -->
+      <div id="timeText" class="time-text">0:00 / 0:00</div>
+      <input type="range" id="progressBar" class="progress-slider" value="0" min="0" max="100" disabled>
+
+      <!-- 4. 실시간 사운드 볼륨 제어 및 음소거 단락 판넬 -->
+      <div class="volume-control-panel">
+        <button id="btnMute" style="width:80px; padding: 4px 10px;">🔊 Mute</button>
+        <span style="font-size: 12px; /*font-weight: bold;*/ color: #000;">VOLUME:</span>
+        <!-- HTML 내 볼륨 슬라이더 태그 설정 양식 -->
+        <!-- 기본값(value)은 1, 최소값(min)은 0, 최대값(max)은 2, 두께 간격(step)은 0.05 단위 추천 -->
+        <input type="range" id="volumeBar" min="0" max="2" step="0.05" value="1">
+        <!-- 🎯 [신규 추가]: 실시간 볼륨 퍼센트 수치 출력 스크린 부착 -->
+        <span id="volumeValue" style="font-family: monospace; font-size: 13px; font-weight: bold; width: 40px; text-align: right;">50%</span>
+      </div>
+
+      <!-- 상태 판넬 -->
+      <div id="playStatus" class="status-text">시스템 오디오 핵심 모듈 로드 중...</div>
+
+      <!-- 제어 기동 장치 버튼 그룹 -->
+      <div class="btn-group">
+        <button id="btnPlay" disabled>▶ 재생 (시작)</button>
+        <button id="btnPause" disabled>⏸ 일시정지</button>
+        <button id="btnStop" disabled>■ 정지</button>
+        <button id="btnSpeed" >⏩ <span id="speedTxt">빨리감기</span></button>
+      </div>
+
+      <!-- 💡 [신규 추가 단락]: 가사 전체 내용 줄글 스크롤 뷰어 창 -->
+      <div id="lyricsBtn" style="margin-top:15px; font-size:12px; font-weight:bold; color:#000;cursor:pointer;">📑 가사 전체 내용</div>
+      <div id="allLyricsView" class="all-lyrics-viewer hidden">
+        <div style="color:#808080; text-align:center; padding-top:40px;">음악 버퍼 주입 시 전체 줄글이 생성됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 조합형한글 변홤모듈 -->
+  <script src="johab-decoder.js"></script>   
+  
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

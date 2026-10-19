@@ -1,0 +1,280 @@
+/* style.css */
+:root {
+  --bg-main: #C0C0C0;
+  --text-main: #000000;
+  --color-white: #FFFFFF;
+  --color-blue: #0000FF;
+  --color-yellow: #FFFF00;
+  --border-highlight: #FFFFFF;
+  --border-dark: #000000;
+}
+
+@font-face {
+    font-family: NeoDunggeunmo;
+    src: url(https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@1.601/neodgm/neodgm.woff2) format("woff2"),url(https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@1.601/neodgm/neodgm.woff) format("woff");
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+}
+
+
+body {
+  /*font-family: "MS Sans Serif", sans-serif;*/
+  font-family: NeoDunggeunmo,"MS Sans Serif","Microsoft Sans Serif",sans-serif;
+  background-color: #2b4b7c;
+  color: var(--text-main);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100dvh; /* 모바일 오차로 조정 vh->dvh */
+  margin: 0;
+  /*padding: 20px 0; // 스크롤이 생겨서 제거함 */
+}
+
+.dos-window {
+  background: var(--bg-main);
+  width: 500px;
+  border-top: 2px solid var(--border-highlight);
+  border-left: 2px solid var(--border-highlight);
+  border-right: 2px solid var(--border-dark);
+  border-bottom: 2px solid var(--border-dark);
+  padding: 2px;
+  box-shadow: 6px 6px 20px rgba(0,0,0,0.6);
+}
+
+.title-bar {
+  background: var(--color-blue);
+  color: var(--color-white);
+  padding: 4px 6px;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.content-area {
+  padding: 12px;
+}
+
+.visualizer-screen {
+  /*width: 100%;*/
+  width: 472px; /* 오른쪽이 삐져 나와서 조정함 */
+  height: 80px;
+  background: #000000;
+  border: 2px inset var(--bg-main);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.lyric-screen {
+  background: #000080;
+  color: #00FFFF;
+  /*font-family: "DungGeunMo", monospace, sans-serif;*/
+  font-family: NeoDunggeunmo,"MS Sans Serif","Microsoft Sans Serif",sans-serif;
+  font-size: 18px;
+  text-align: center;
+  padding: 12px;
+  min-height: 24px;
+  border: 2px inset var(--bg-main);
+  margin-bottom: 12px;
+  /*font-weight: bold;*/
+  text-shadow: 0 0 6px rgba(0, 255, 255, 0.8);
+}
+
+/* 💡 [신규 추가]: 가사 전체 내용 수급 뷰어 룸 스크롤러 */
+.all-lyrics-viewer {
+  background-color: #FFFFFF;
+  color: #333333;
+  border: 2px inset var(--border-dark);
+  font-family: monospace;
+  font-size: 13px;
+  height: 120px;
+  overflow-y: scroll;
+  padding: 8px;
+  margin-top: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.all-lyrics-viewer div {
+  padding: 2px 4px;
+}
+
+.all-lyrics-viewer .active-line {
+  background-color: #ffff00;
+  color: #000000;
+  font-weight: bold;
+}
+
+.time-text {
+  font-family: monospace;
+  font-size: 15px;
+  color: #000000;
+  text-align: right;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.progress-slider {
+  width: 100%;
+  margin-bottom: 15px;
+  cursor: pointer;
+}
+
+.volume-control-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-main);
+  border: 2px inset var(--color-white);
+  padding: 6px 12px;
+  margin-bottom: 12px;
+  gap: 15px; /* 내부 간격을 조금 더 넓혀 가독성 향상 */
+}
+
+.volume-slider {
+  flex-grow: 1;
+  cursor: pointer;
+}
+
+.status-text {
+  font-size: 13px;
+  font-weight: bold;
+  color: var(--color-blue);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.btn-group {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+button {
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  border-top: 2px solid var(--border-highlight);
+  border-left: 2px solid var(--border-highlight);
+  border-right: 2px solid var(--border-dark);
+  border-bottom: 2px solid var(--border-dark);
+  background: var(--bg-main);
+  outline: none;
+}
+
+button:active:not(:disabled) {
+  border-top: 2px solid var(--border-dark);
+  border-left: 2px solid var(--border-dark);
+  border-right: 2px solid var(--border-highlight);
+  border-bottom: 2px solid var(--border-highlight);
+}
+
+button:disabled {
+  color: #808080;
+  cursor: not-allowed;
+}
+
+.auto-fit-box {
+  container-type: inline-size; /* 부모 요소를 컨테이너로 지정 */
+  white-space: nowrap;         /* 줄바꿈 방지 */
+  overflow: hidden;            /* 넘침 방지 (선택 사항) */
+}
+
+.auto-fit-box span {
+  /* 5cqi는 컨테이너 가로 폭의 5% 크기 */
+  /* clamp(최소폰트크기, 반응형크기, 최대폰트크기) */
+  /**/font-size: clamp(9px, 3.1cqi, 18px); /**/
+  white-space: pre-wrap; /* 여러 공백 허용 */
+  
+  /* 다른 방법 (안됨)*/
+  /*font-size: max(10px, min(18px, calc(100vw * 16px/variables.$max-content-width)));*/
+}
+
+.hidden { display: none !important; }
+
+/* style.css 파일 내부 교정 및 반응형 미디어 쿼리 추가 */
+
+/* 1. PC 및 기본 화면 설정: 최대 크기를 500px로 제한하되 화면이 작아지면 유연하게 수축하도록 변경 */
+.dos-window {
+  background: var(--bg-main);
+  width: 100%;             /* 🎯 고정 500px 대신 100% 채우기 구조로 변경 */
+/*max-width: 500px;*/      /* 🎯 PC나 패드 등 넓은 화면에서는 최대 500px로 클래식 감성 고정 */
+  max-width: 645px;        /* 가사폰트 18px 가 줄어들지 않는 사이즈로 조정함 */
+  border-top: 2px solid var(--border-highlight);
+  border-left: 2px solid var(--border-highlight);
+  border-right: 2px solid var(--border-dark);
+  border-bottom: 2px solid var(--border-dark);
+  padding: 2px;
+  box-shadow: 6px 6px 20px rgba(0,0,0,0.6);
+  box-sizing: border-box;  /* 패딩과 테두리가 가로폭을 넘지 않도록 안전 가드 */
+  margin: 0 10px;
+}
+
+/* 2. 비주얼라이저 화면 설정: 패딩 영역 안에서 무조건 꽉 차도록 100% 구조로 전사 개혁 */
+.visualizer-screen {
+  width: 100%;             /* 🎯 폰 화면에서도 절대 삐져나가지 않도록 472px 고정값 제거 */
+  height: 80px;
+  background: #000000;
+  border: 2px inset var(--bg-main);
+  margin-bottom: 10px;
+  display: block;
+  box-sizing: border-box;  /* 테두리 오차 누수 완전 방어 */
+}
+
+/* 3. 내부 콘텐츠 패딩 박스 속성 안전 가드 */
+.content-area {
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+#volumeBar {
+  width:100%;
+}
+
+#infoAuthor span {
+	color: #46474b;
+}
+
+/* 📱 4. [아이폰 X / 모바일 긴급 도킹 브레이크 레이어]: 가로 폭이 좁은 스마트폰 화면 대응 */
+@media screen and (max-width: 520px) {
+  body {
+    padding: 0 10px 0 10px;         /* 폰 화면 사방에 미세한 여백 주입 */
+    align-items: center;   /* 정중앙 정렬 유지 */
+  }
+  
+  .dos-window {
+    max-width: 100%;       /* 모바일 뷰포트 크기에 1:1 완벽 밀착 */
+    box-shadow: 4px 4px 12px rgba(0,0,0,0.5); /* 폰 화면에 맞춰 그림자 두께 슬림화 */
+  }
+
+  .content-area {
+    padding: 8px;          /* 모바일 공간 확보를 위해 패딩 다이어트 */
+  }
+
+  /* 가사 폰트 크기 반응형 클램프 보정: 가사창이 작아져도 글자가 깨지거나 깨져나가지 않도록 압축 */
+  .lyric-screen {
+    font-size: clamp(14px, 4.5cqi, 18px); /* 🎯 폰 크기에 맞게 자막 스케일 최적 압축 조정 */
+    padding: 8px;
+    min-height: 20px;
+  }
+  
+  /* 하단 전체 가사 스크롤러 창도 폰 화면에 맞춰 높이 밸런스 조정 * /
+  .all-lyrics-viewer {
+    height: 100px;
+    font-size: 12px;
+    margin-top: 10px;
+  }
+  */
+  .all-lyrics-viewer {
+    height: 400px;
+    width: 85%;
+    font-size: 12px;
+    position: absolute;
+    top: 48%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}

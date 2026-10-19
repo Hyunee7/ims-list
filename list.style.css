@@ -1,0 +1,171 @@
+
+@font-face {
+    font-family: NeoDunggeunmo;
+    src: url(https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@1.601/neodgm/neodgm.woff2) format("woff2"),url(https://cdn.jsdelivr.net/gh/neodgm/neodgm-webfont@1.601/neodgm/neodgm.woff) format("woff");
+    font-weight: 400;
+    font-style: normal;
+    font-display: block;
+}
+
+	body {
+	  background-color:#181818;
+	  color:#bbbbbb;
+      font-family: NeoDunggeunmo,"MS Sans Serif","Microsoft Sans Serif",sans-serif;
+	}
+
+    input {
+        background-color:#666666;
+        border-width: inherit;
+        font-size:14pt;
+    }
+    button {
+        background-color:#333333;
+        color:#efefef;
+        font-size:14pt;
+    }
+    tbody tr:nth-child(odd) {
+        background-color: #222222;
+    }
+    td {
+        /*padding:2 0 2 0;*/
+        font-size:12pt;
+    }
+
+    a {
+        color:#999999;
+        /**/text-decoration:none;/**/
+    }
+    #pageDiv {
+    }
+    table {
+        width:100%;
+    }
+    .page-link {
+        border: 1px #444444 solid;
+        color:#666666;
+        background-color:#333333;
+
+    }
+    .active>.page-link {
+        background-color:#444444;
+        border-color:#444444;
+    }
+input[type="checkbox"]{
+        display: none;
+      }
+input[type="checkbox"] + label{
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border:1px solid #707070;
+        position: relative;
+        margin:5px 0 0 5px;
+      }
+input[id="chkIss"]:checked + label::after{
+        content:'✔';
+        font-size: 8px;
+        width: 14px;
+        height: 14px;
+        text-align: center;
+        position: absolute;
+        left: 0;
+        top:0;
+        color: azure;
+      }
+/**/
+    /* 고정폭 폰트로 교정 */
+    html {
+        font-feature-settings: "tnum";
+        font-variant-numeric: tabular-nums;
+    }
+
+    @media (max-width: 375px) {
+        html {
+            font-size:14pt;
+        }
+    }
+
+    /*td.monospace {font-family:monospace;}*/
+    * {font-family:monospace;}
+    td.title {
+        text-overflow:ellipsis;
+        white-space:nowrap;
+        overflow: hidden;
+    }
+    #listDiv {
+            min-width: 620px;
+    }
+
+    #totalDiv {
+        position: fixed;
+        top: 16px;
+        left:5px;
+    }
+    .searchClear {
+        margin: 0;
+        padding: 1px 2px 4px 3px;
+        line-height: 70%;
+        position: absolute;
+        top: 5px;
+        right: 66px;
+        border: 0px;
+        font-size: 20pt;
+    }
+
+
+@media only screen and (-webkit-min-device-pixel-ratio: 2) {
+  /* iPhone 4-specific styles go here */
+}
+
+@media not all and (min-resolution:.001dpcm)
+{ @supports (-webkit-appearance:none) {
+	/* 이 안에 Safari(10.1 이상)에서만 적용할 스타일 작성 */
+
+}}
+
+/* 아이폰x  375x635 */
+@media only screen and (min-device-width: 300px) and (max-device-width: 400px) {
+    /*
+    button:nth-child(2) {
+        width:56px;
+    }
+    */
+    input[name=search] {
+        width:200px;
+    }
+    .searchClear {
+        margin: 0;
+        padding: 1px 2px 4px 3px;
+        line-height: 70%;
+        position: absolute;
+        top: 7px;
+        right: 90px;
+        border: 0px;
+        font-size: 20pt;
+    }
+    #pageDiv {
+        min-width: 650px;
+    }
+}
+    .justify-content-center {
+        justify-content: '';
+    }
+
+/* ipad 1366*917*/
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) {
+    .searchClear {
+        margin: 0;
+        padding: 1px 2px 4px 3px;
+        line-height: 70%;
+        position: absolute;
+        top: 7px;
+        right: 86px;
+        border: 0px;
+        font-size: 20pt;
+    }
+    * {
+        /*font-size:14pt;*/
+    }
+    /*Table > tbody > tr > td { white-space:nowrap; }*/
+    Table > tbody > tr { height:38px; }
+}

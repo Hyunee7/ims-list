@@ -85,7 +85,7 @@ function listPut(page){
 		if(isMobile){
 			html += '<tr>';
 			html += '<td rowSpan=2 class="center" onclick="viewIms(' + list[itemNo].index + ')">' + listNo + '</td>';
-			html += '<td colSpan=5 class="title" onclick="adplug(' + list[itemNo].index + ')">' + title + '</td>';
+			html += '<td colSpan=5 class="title"><div><span onclick="adplug(' + list[itemNo].index + ')">' + title + '</span><input name="playlist" type="checkbox" id="playlist' + list[itemNo].index + '" value="' + list[itemNo].index + '"><label for="playlist' + list[itemNo].index + '" onclick=""></label></div></td>';
 			html += '</tr>';
 			
 			html += '<tr>';
@@ -149,35 +149,18 @@ function toggleIssCheckbox() {
     listPut(1);
 }
 
-// 여러 fetch 를 실행 및 상태 체크
-async function fetchAllData() {
-  const urls = lstFile;
 
-  try {
-    const promises = urls.map(async (url) => {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('네트워크 에러 : '+url);
-      //return response.json();
-      //return {response:response,url:url};
-      return await response.arrayBuffer();
-      //return '성공';
-    });
-
-    // 모든 작업이 끝날 때까지 대기
-    const finalData = await Promise.all(promises);
-    console.log('모든 fetch 완료:', finalData.length);
-	finalData.map(rs=>loadList(rs));
-
-	randomPage();
-
-  } catch (error) {
-    console.error('하나 이상의 fetch에서 에러 발생:', error);
-  }
+function init(){
+	songs = getLocalDB();
+	if(songs.length)
+		randomPage();
+	else
+		fetchAllData(); // ocplay 곡리스트 파일들 파싱 후 곡리스트 출력
 }
 
 // 원본 이벤트 바인딩 규격 상속 및 기기 감별 후 첫 실행
 window.addEventListener("load", async ()=> {
-	fetchAllData(); // ocplay 곡리스트 파일들 파싱 후 곡리스트 출력
+	init();
 
 	search.onkeydown = (ev)=>{
 		if(ev.key == 'Enter') listPut(1); // 검색어 입력창에 Enter 이면 목록출력

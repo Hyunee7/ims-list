@@ -6,7 +6,13 @@ const player = new AdPlugPlayer();
 const lyricParser = new AdPlugLyricParser();
 
 // 외부호출 시 전달된 IMS 경로
-const MUSIC_URL = './100MEET.IMS'; 
+let MUSIC_URL = './100MEET.IMS'; 
+const PLAYLIST = [
+  '../dos/C_Drv/MUSIC/DATA/COLLECT/SB-NOPRO.IMS',
+  '../dos/C_Drv/MUSIC/DATA/COLLECT/SB-TIES.IMS',
+  '../dos/C_Drv/MUSIC/DATA/COLLECT/SIM-BUHL.IMS'
+];
+let PLAYLIST_index = 0;
 
 const params = new URLSearchParams(window.location.search);
 //console.log('params',params);
@@ -400,12 +406,8 @@ async function startPlay() {
 //  document.getElementById('infoAuthor').innerText += ` (${mapped.mapped} / ${mapped.ims} / ${mapped.bnk})`;
   document.getElementById('infoAuthor').innerHTML += ` (${mapped.mapped}<span>/</span>${mapped.ims}<span>/</span>${mapped.bnk.toLocaleString()})`;
 
-
-//alert('여기까지1')
   setupVisualizer();
-//alert('여기까지2')
   startInterfaceLoop();
-//alert('여기까지3')
 }
 
 // 재생 버튼

@@ -129,3 +129,72 @@ function randomPage(){
         }
         //log('songs', songs);
     }
+	
+	// 여러 fetch 를 실행 및 상태 체크
+	async function fetchAllData() {
+	  const urls = lstFile;
+
+	  try {
+		const promises = urls.map(async (url) => {
+		  const response = await fetch(url);
+		  if (!response.ok) throw new Error('네트워크 에러 : '+url);
+		  //return response.json();
+		  //return {response:response,url:url};
+		  return await response.arrayBuffer();
+		  //return '성공';
+		});
+
+		// 모든 작업이 끝날 때까지 대기
+		const finalData = await Promise.all(promises);
+		console.log('모든 fetch 완료:', finalData.length);
+		finalData.map(rs=>loadList(rs));
+
+		randomPage();
+		setLocalDb(songs);
+
+	  } catch (error) {
+		console.error('하나 이상의 fetch에서 에러 발생:', error);
+	  }
+	}
+
+function downloadCSV(lines, filename) {
+    const BOM = '\uFEFF'; // 엑셀 한글 깨짐 방지
+    const csvContent = BOM + lines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+function downloadJSON(lines, filename) {
+    const dataContent = JSON.stringify(lines);
+    const blob = new Blob([dataContent], { type: 'text/csv;charset=utf-8;' });
+    
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+function setLocalDb(songs){
+//    localStorage.setItem('songs', songs);
+    localStorage.setItem('songs', JSON.stringify(songs));
+}
+
+function getLocalDB(){
+	return JSON.parse(localStorage.getItem('songs'))||[];
+}

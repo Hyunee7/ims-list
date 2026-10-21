@@ -5,6 +5,7 @@
     --dos-cyan: #00ffff;        /* 하이라이트 블루 */
     --dos-gray: #aaaaaa;        /* 기본 텍스트 회색 */
     --dos-dark-blue: #0000aa;   /* 노턴 커맨더 블루 헤더 */
+	--dos-blue: #0000FF;
 }
 
 @font-face {
@@ -173,13 +174,32 @@ a:hover, a:active {
 input[type="checkbox"] { display: none; }
 input[type="checkbox"]:checked + label::after {
     content: 'X';
-    font-size: 11px;
+    font-size: 13px;
     font-weight: bold;
-    color: var(--dos-fg);
+    color: var(--dos-blue);
     position: absolute;
-    left: 2px;
+    left: 3px;
     top: -2px;
 }
+
+/* playlist */
+.title div {
+    display: flex;
+    justify-content: space-between;
+}
+.title label {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--dos-gray);
+    background: #000;
+    vertical-align: middle;
+    margin-left: 4px;
+    position: relative;
+    cursor: pointer;
+	margin: 4px 5px;
+}
+
 
 /* 터미널 감성 페이지네이션 */
 .pagination {

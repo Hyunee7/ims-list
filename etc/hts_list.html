@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTS 플레이리스트 바이너리 파서</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', dotum, sans-serif;
+            margin: 30px;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        /* 드롭존 스타일 */
+        #drop-zone {
+            width: 100%;
+            height: 150px;
+            border: 3px dashed #3498db;
+            border-radius: 10px;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #3498db;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+        }
+        #drop-zone.dragover {
+            background-color: #e8f4fd;
+            border-color: #2980b9;
+            color: #2980b9;
+            transform: scale(1.01);
+        }
+        /* 정보 메타데이터 박스 */
+        .info-box {
+            background-color: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            display: none;
+        }
+        .info-box p {
+            margin: 8px 0;
+            font-size: 0.95rem;
+        }
+        .info-box span {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        /* 테이블 스타일 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #edf2f7;
+        }
+        th {
+            background-color: #2c3e50;
+            color: #fff;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f1f2f6;
+        }
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>HTS 플레이리스트 바이너리 파서</h1>
+    <p>도스(DOS) 시절 음악 재생목록 바이너리 파일을 드래그하여 아래 영역에 떨어뜨려 주세요.</p>
+
+    <!-- 드래그 앤 드롭 영역 -->
+    <div id="drop-zone">이곳에 파일을 드래그 앤 드롭 하세요 (또는 클릭하여 선택)</div>
+    <input type="file" id="file-input" style="display: none;">
+
+    <!-- 파일 정보 메타데이터 출력 영역 -->
+    <div id="info-box" class="info-box">
+        <h2>파일 정보</h2>
+        <p>📄 파일 이름: <span id="info-name" style="color:#2c3e50;">-</span></p>
+        <p>🔑 헤더 시그니처: <span id="info-signature">-</span> (크기: <span id="info-hsize">-</span> 바이트)</p>
+        <p>📊 분석된 목록 크기: <span id="info-lsize">-</span> 바이트 (총 <span id="info-count">-</span>개 항목 추출)</p>
+    </div>
+
+    <!-- 목록 출력 테이블 -->
+    <table id="result-table">
+        <thead>
+            <tr>
+                <th style="width: 8%;" class="text-center">번호</th>
+                <th style="width: 25%;">파일 이름 (Filename)</th>
+                <th style="width: 42%;">곡 제목 (Title)</th>
+                <th style="width: 25%;">아티스트/제작자 (Artist)</th>
+            </tr>
+        </thead>
+        <tbody id="result-body">
+            <!-- 파싱된 데이터가 여기에 삽입됩니다 -->
+        </tbody>
+    </table>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const infoBox = document.getElementById('info-box');
+        const resultTable = document.getElementById('result-table');
+        const resultBody = document.getElementById('result-body');
+
+        // 드롭존 클릭 시 파일 선택 창 띄우기
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        // 드래그 이벤트 핸들러
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        // 파일 처리 핵심 함수
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            const file = files[0];
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const arrayBuffer = e.target.result;
+                const result = parseHtsListFile(arrayBuffer);
+                renderResult(file.name, result);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // JavaScript 바이너리 파서 함수 (EUC-KR 디코딩 적용)
+        function parseHtsListFile(arrayBuffer) {
+            const HEADER_SIZE = 32;
+            const RECORD_SIZE = 64;
+            const decoder = new TextDecoder('euc-kr'); // 도스 시절 한글 깨짐 복원용
+
+            // 1. 헤더 파싱
+            const headerBuffer = arrayBuffer.slice(0, HEADER_SIZE);
+            const headerText = decoder.decode(headerBuffer).replace(/[\x00-\x1F]/g, '').trim();
+
+            // 2. 레코드 목록 파싱
+            const listBuffer = arrayBuffer.slice(HEADER_SIZE);
+            const totalRecords = Math.floor(listBuffer.byteLength / RECORD_SIZE);
+            const items = [];
+
+            for (let i = 0; i < totalRecords; i++) {
+                const startOffset = i * RECORD_SIZE;
+                const endOffset = startOffset + RECORD_SIZE;
+                const recordBuffer = listBuffer.slice(startOffset, endOffset);
+
+                // 고정 바이트 구조 기반 슬라이싱
+                const titleBytes = recordBuffer.slice(8, 40);       // 곡 제목 (32바이트)
+                const artistBytes = recordBuffer.slice(40, 52);     // 아티스트 (12바이트)
+                const filenameBytes = recordBuffer.slice(52, 64);   // 파일명 (12바이트)
+
+                const title = decoder.decode(titleBytes).trim();
+                const artist = decoder.decode(artistBytes).trim();
+                const filename = decoder.decode(filenameBytes).trim();
+
+                if (filename) {
+                    items.push({
+                        index: i + 1,
+                        filename: filename,
+                        title: title || '제목 없음',
+                        artist: artist || '알 수 없음'
+                    });
+                }
+            }
+
+            return {
+                header: { size: HEADER_SIZE, signature: headerText },
+                list: { size: listBuffer.byteLength, items: items }
+            };
+        }
+
+        // 화면에 결과 렌더링
+        function renderResult(fileName, parsedData) {
+            // 메타데이터 출력
+            document.getElementById('info-name').textContent = fileName;
+            document.getElementById('info-signature').textContent = parsedData.header.signature || "없음(공백)";
+            document.getElementById('info-hsize').textContent = parsedData.header.size;
+            document.getElementById('info-lsize').textContent = parsedData.list.size;
+            document.getElementById('info-count').textContent = parsedData.list.items.length;
+
+            // 테이블 내용 초기화 후 새로 매핑
+            resultBody.innerHTML = '';
+            parsedData.list.items.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="text-center">${item.index}</td>
+                    <td style="font-family: monospace; font-weight: bold; color: #2980b9;">${item.filename}</td>
+                    <td>${item.title}</td>
+                    <td style="color: #7f8c8d;">${item.artist}</td>
+                `;
+                resultBody.appendChild(row);
+            });
+
+            // 숨겨진 영역 표시
+            infoBox.style.display = 'block';
+            resultTable.style.display = 'table';
+        }
+    </script>
+</body>
+</html>

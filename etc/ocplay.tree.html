@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>도스 디렉토리 트리 뷰어 (CP949 한글 복구형)</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace, '맑은 고딕';
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            margin: 0;
+        }
+        h2 {
+            color: #61afef;
+            border-bottom: 1px solid #3e4451;
+            padding-bottom: 10px;
+        }
+        .upload-box {
+            border: 2px dashed #4b5263;
+            padding: 30px;
+            text-align: center;
+            background-color: #21252b;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            transition: border 0.3s;
+        }
+        .upload-box:hover {
+            border-color: #61afef;
+        }
+        #file-input {
+            display: none;
+        }
+        .tree-container {
+            background-color: #282c34;
+            border: 1px solid #3e4451;
+            padding: 20px;
+            border-radius: 5px;
+            white-space: pre;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+        
+        /* 기본 폴더 및 루트 스타일 */
+        .folder-item { color: #d4d4d4; }
+        .folder-icon { color: #e5c07b; margin-right: 5px; }
+        .root-icon { color: #e06c75; margin-right: 5px; }
+        
+        /* [두 번째 비트 강조] 밝은 형광 초록색 */
+        .highlight-green { 
+            color: #98c379 !important; 
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(152, 195, 121, 0.4);
+        }
+        .highlight-green .folder-icon { color: #a3e635 !important; }
+
+        /* [세 번째 비트 강조] 네온 하늘색 (Cyan) */
+        .highlight-cyan { 
+            color: #56b6c2 !important; 
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(86, 182, 194, 0.4);
+        }
+        .highlight-cyan .folder-icon { color: #4dd0e1 !important; }
+    </style>
+</head>
+<body>
+
+    <h2>📁 DOS 디렉토리 트리 구조 시각화 (CP949 완성형 한글 복구)</h2>
+    
+    <div class="upload-box" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        도스 디렉토리 데이터 파일(.dat, .bin, .txt 등)을 여기에 드래그하거나 클릭하세요.
+        <input type="file" id="file-input" accept="*/*">
+    </div>
+
+    <div class="tree-container" id="tree-output">파일을 입력하면 CP949 인코딩이 정상 반영된 트리 구조가 표시됩니다.</div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const treeOutput = document.getElementById('tree-output');
+
+        // 브라우저 공식 표준에 맞춘 CP949(EUC-KR 확장) 디코더 객체 선언
+        const decoder = new TextDecoder('euc-kr');
+
+        // 드래그 앤 드롭 파일 수신
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#61afef'; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#4b5263'; });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#4b5263';
+            if (e.dataTransfer.files.length > 0) {
+                processFile(e.dataTransfer.files[0]); // 첫 번째 파일 객체(File)만 안전하게 슬라이싱하여 전달
+            }
+        });
+
+        // 파일 직접 클릭 선택 수신 (TypeError 완벽 해결)
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]); // e.target.files 목록에서 [0]번 인덱스로 정확히 전달
+            }
+        });
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const buffer = new Uint8Array(e.target.result);
+                parseTreeData(buffer);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseTreeData(buffer) {
+            let i = 0;
+            let treeLines = [];
+            const RECORD_SIZE = 14; 
+
+            // 루트 디렉토리 초기화
+            treeLines.push({ level: 0, name: "C:\\", isLast: false, colorType: "default" });
+
+            while (i < buffer.length) {
+                if (i + RECORD_SIZE > buffer.length) break;
+
+                let record = buffer.subarray(i, i + RECORD_SIZE);
+                let nameBytes = record.subarray(0, 13); // 13바이트 디렉토리명 영역
+                let attrByte = record[13];              // 14번째 바이트 속성 고정             
+
+                // 1. 첫 번째 비트(최좌측, b7 = 0x80) ➔ 마지막 항목 여부 (└──)
+                let isLast = (attrByte & 0x80) === 0x80;
+                
+                // 2. 색상 하이라이트 타입 분류 (두 번째 비트 b6, 세 번째 비트 b5 조건 판별)
+                let colorType = "default";
+                if ((attrByte & 0x40) === 0x40) {
+                    colorType = "green"; // 두 번째 비트 활성화 ➔ 초록색 강조
+                } else if ((attrByte & 0x20) === 0x20) {
+                    colorType = "cyan";  // 세 번째 비트 활성화 ➔ 하늘색 강조
+                }
+                
+                // 3. 상위 3비트를 비트마스킹(0x1F)으로 밀어내고 남은 순수 트리 깊이(Level)값
+                let level = attrByte & 0x1F;
+
+                if (level === 0 || level > 20) level = 1;
+
+                // 4. [핵심 수정] 고정 바이트 내에서 Null(0x00) 직전까지만 잘라내어 CP949 디코딩 수행
+                let actualNameEnd = 0;
+                while (actualNameEnd < 13 && nameBytes[actualNameEnd] !== 0x00 && nameBytes[actualNameEnd] !== 0x20) {
+                    actualNameEnd++;
+                }
+                
+                let dirName = "";
+                if (actualNameEnd > 0) {
+                    let validNameBytes = nameBytes.subarray(0, actualNameEnd);
+                    dirName = decoder.decode(validNameBytes).trim();
+                }
+
+                // 유효 노드 추가 (불필요한 상대경로 필터링)
+                if (dirName && dirName !== "C:\\" && !dirName.startsWith("..") && dirName !== "." && dirName !== "C:") {
+                    treeLines.push({ 
+                        level: level, 
+                        name: dirName, 
+                        isLast: isLast,
+                        colorType: colorType
+                    });
+                }
+
+                i += RECORD_SIZE;
+            }
+
+            renderTree(treeLines);
+        }
+
+        function renderTree(treeLines) {
+            let htmlResult = "";
+            let levelLastFlags = [];
+
+            treeLines.forEach((item) => {
+                if (item.level === 0) {
+                    htmlResult += `<span class="root-icon">💾</span><strong>${item.name}</strong>\n`;
+                    return;
+                }
+
+                levelLastFlags[item.level] = item.isLast;
+
+                let indent = "";
+                for (let l = 1; l < item.level; l++) {
+                    if (levelLastFlags[l]) {
+                        indent += "    ";
+                    } else {
+                        indent += "│   ";
+                    }
+                }
+
+                let connector = item.isLast ? "└── " : "├── ";
+                
+                let colorClass = "";
+                if (item.colorType === "green") colorClass = "highlight-green";
+                else if (item.colorType === "cyan") colorClass = "highlight-cyan";
+
+                htmlResult += `${indent}${connector}<span class="${colorClass} folder-item"><span class="folder-icon">📁</span>${item.name}</span>\n`;
+            });
+
+            treeOutput.innerHTML = htmlResult;
+        }
+    </script>
+</body>
+</html>

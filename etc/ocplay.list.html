@@ -33,6 +33,8 @@
         .info-card { background-color: #fff; padding: 20px; border-radius: 8px; border-left: 5px solid #3498db; }
         .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
         .text-highlight { color: #2980b9; font-weight: bold; }
+        .text-highlight-bnk { color: #186d42; font-weight: bold; }
+        .text-highlight-lst { color: #8eb929; font-weight: bold; }
         table { width: 100%; border-collapse: collapse; background-color: #fff; border-radius: 8px; overflow: hidden; }
         th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #ecf0f1; font-size: 13.5px; }
         th { background-color: #34495e; color: white; }
@@ -42,6 +44,8 @@
         .badge { background-color: #e8f4fd; color: #2980b9; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
         .badge-count { background-color: #eef9f3; color: #2ecc71; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
         .badge-accent { background-color: #fff4e6; color: #d35400; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        .badge-checksum { background-color: #fff4e6; color: #8d00d3; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+        .badge-selected { background-color: #fff4e6; color: #9bab21; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
         /* 테이블 본문(tbody)의 4번째, 5번째 td만 오른쪽 정렬 */
         table tbody tr td:nth-child(5),
         table tbody tr td:nth-child(7) {
@@ -86,25 +90,25 @@
         </div>
 
         <!-- ======================================================= -->
-        <!-- ===       HARDWARE MONITORING & DATA TABLE DISPLAY  === -->
+        <!-- ===     HARDWARE MONITORING & DATA TABLE DISPLAY    === -->
         <!-- ======================================================= -->
         <div id="header-area" class="hidden">
             <h2>📌 (_IMS_).LST 헤더 명세 분석 결과</h2>
             <div class="info-card">
                 <div class="info-grid">
                     <p><strong>포맷 시그니처 (0~28B):</strong> <span id="info-version" class="text-highlight">-</span></p>
-                    <p><strong>악기 뱅크 경로 (29~108B):</strong> <span id="info-bank">-</span></p>
-                    <p><strong>리스트 파일 경로 (109~188B):</strong> <span id="info-list">-</span></p>
+                    <p><strong>악기 뱅크 경로 (29~108B):</strong> <span id="info-bank" class="text-highlight-bnk">-</span></p>
+                    <p><strong>리스트 파일 경로 (109~188B):</strong> <span id="info-list" class="text-highlight-lst">-</span></p>
                 </div>
                 <div class="info-grid" style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 15px;">
                     <p><strong>현재 커서 곡 index (189~190B):</strong> <span id="info-current-index" class="badge">-</span></p>
                     <p><strong>화면상커서위치 (190~191B):</strong> <span id="info-hidden-field" class="badge-accent">-</span></p>
                     <p><strong>총 등록 곡 수 (192~193B):</strong> <span id="info-header-count" class="badge-count">0곡</span></p>
-                    <p><strong>선택 곡 수 (194~195B):</strong> <span id="info-volume">-</span></p>
+                    <p><strong>선택 곡 수 (194~195B):</strong> <span id="info-volume" class="badge-selected">-</span></p>
                     <p><strong>정렬 (196~1997B):</strong> <span id="info-flag" class="badge-accent">-</span></p>
                     <!-- <p><strong>?? (197B):</strong> <span id="info-midi">-</span></p> -->
                     <p><strong>?? (198~199B):</strong> <span id="info-1">-</span></p>
-                    <p><strong>체크섬 (200~201B):</strong> <span id="info-2">-</span></p>
+                    <p><strong>체크섬 (200~201B):</strong> <span id="info-2" class="badge-checksum">-</span></p>
                     <p><strong>헤더 크기 마감 지점:</strong> <span id="info-offset" class="badge">0 Byte</span></p>
                 </div>
             </div>
@@ -114,14 +118,14 @@
             <table id="list-table">
                 <thead>
                     <tr>
-                        <th style="width: 5%;">INDEX<br><small>(Offset 51~52)</small></th>
-                        <th style="width: 14%;">곡 파일명 ID<br><small>(Offset 8~16)</small></th>
+                        <th style="width:  7%;">INDEX<br><small>(Offset 51~52)</small></th>
+                        <th style="width: 12%;">곡 파일명 ID<br><small>(Offset 8~16)</small></th>
                         <th style="width: 30%;">곡 제목 [조합형 한글 해독]<br><small>(Offset 21~50)</small></th>
-                        <th style="width: 10%;">재생시간<br><small>(Offset 19~20)</small></th>
+                        <th style="width:  9%;">재생시간<br><small>(Offset 19~20)</small></th>
                         <th style="width: 10%;">곡 파일크기<br><small>(Offset 0~1)</small></th>
-                        <th style="width: 6%;">선택관련<br><small>(Offset 2~3)</small></th>
+                        <th style="width:  6%;">선택관련<br><small>(Offset 2~3)</small></th>
                         <th style="width: 10%;">가사 파일크기<br><small>(Offset 4~5)</small></th>
-                        <th style="width: 5%;">가사 속성<br><small>(Offset 6~7)</small></th>
+                        <th style="width:  6%;">가사 속성<br><small>(Offset 6~7)</small></th>
                         <th style="width: 10%;">등록 날짜<br><small>(Offset 17~18)</small></th>
                     </tr>
                 </thead>
@@ -251,6 +255,7 @@
 
         //var finalHeaderSize = (flag196 !== 0) ? 202 : 200;
         var finalHeaderSize = 202; // 196은 정렬이었음
+		if(bytes[0x1a]==48) finalHeaderSize=200; // ASCII '0'
 
         document.getElementById('info-version').innerText = headVersion;
         document.getElementById('info-bank').innerText = headBank;
@@ -258,16 +263,16 @@
         document.getElementById('info-current-index').innerText = currentIndex + " 번";
         
         if (document.getElementById('info-hidden-field')) {
-            document.getElementById('info-hidden-field').innerText = hiddenField + " 번 (MAX 18)";
+            document.getElementById('info-hidden-field').innerText = hiddenField + " 번";
         }
         
         document.getElementById('info-header-count').innerText = totalSongs.toLocaleString() + " 곡";
-        document.getElementById('info-volume').innerText = volumeStr;
-        document.getElementById('info-flag').innerText = flag196 +" "+sortStr[flag196];
+        document.getElementById('info-volume').innerText = volumeStr + " 곡";
+        document.getElementById('info-flag').innerText = flag196 +" : "+sortStr[flag196];
         //document.getElementById('info-midi').innerText = "0x" + midiPort;
         document.getElementById('info-1').innerText = "0x" + info1;
-        document.getElementById('info-2').innerText = "0x" + info2 + ' (최종 체크섬 = 디렉토리 경로 문자 합 + 레코드 관련 변수 값 + 2100)';
-        document.getElementById('info-offset').innerText = finalHeaderSize + " Byte 지점 (202B 확정)";
+        document.getElementById('info-2').innerText = "0x" + info2 + ' (체크섬)';
+        document.getElementById('info-offset').innerText = finalHeaderSize + " Byte 지점";
 
         tbody.innerHTML = '';
         var offset = finalHeaderSize;

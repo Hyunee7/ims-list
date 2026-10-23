@@ -201,7 +201,7 @@ export class AdPlugPlayer {
       this.queue.totalFrames = 0;
       this.queue.clear();
     }
-    
+
     this.isPlaying = true;
     this.isPaused = false; 
     this.module._emu_set_loop_enabled(1); 

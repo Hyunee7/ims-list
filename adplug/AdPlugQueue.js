@@ -83,7 +83,6 @@ export class AdPlugQueue {
 
       this.totalFrames += renderCount;
       this.inFlight++;
-
       if (isFinished) {
       //if (this.isFinished) {
 		this.isFinished = isFinished; // add

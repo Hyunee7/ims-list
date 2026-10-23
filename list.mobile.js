@@ -188,7 +188,7 @@ function adplug(idx){
 	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
 			+ escape(songs[idx].filename)+'.IMS&p=1';
 	console.log(url);
-	location.href = './adplug/?ims='+url;
+	location.href = './adplug/?ims='+encodeURIComponent(url);
 }
 
 // 화면회전등 사이즈가 변경되면 처리

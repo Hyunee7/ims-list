@@ -14,10 +14,7 @@ const PLAYLIST = [
 ];
 let PLAYLIST_index = 0;
 
-const params = new URLSearchParams(window.location.search);
-//console.log('params',params);
-//console.log(params.get('ims'));
-//const MUSIC_URL = params.get('ims') || './100MEET.IMS'; 
+const params = new URLSearchParams(unescape(window.location.search));
 const isPopup = params.get('p') || false;
 
 let uiTimerId = null;
@@ -60,8 +57,8 @@ function renderAllLyricsToWindow(lyricsArray) {
 
 // 🎯 [자동 연주 완치 포인트 1]: 주소창에서 ?url=... 링크 주소를 실시간 파싱 추출합니다.
 function getMusicUrlFromQuery() {
-  const params = new URLSearchParams(window.location.search);
-//  return params.get("url"); // ?url=https://... 에서 뒤쪽 주소만 쏙 끄집어냄
+  //const params = new URLSearchParams(unescape(window.location.search));
+  //  return params.get("url"); // ?url=https://... 에서 뒤쪽 주소만 쏙 끄집어냄
   return params.get("ims"); // ?url=https://... 에서 뒤쪽 주소만 쏙 끄집어냄
 }
 
@@ -78,21 +75,6 @@ window['AdPlugPlayer'] = player; // 디버그용?
 
     // 이하는 교정 완료된 정밀 64바이트 파라미터 주사 결합 유지 사양
     info.files.push(FINAL_MUSIC_URL.split('/').pop());
-    const targetLyricUrl = getMatchingLyricUrl(FINAL_MUSIC_URL);
-    document.getElementById('playStatus').innerText = "🔄 IMPlay 표준 조합형 구조(.ISS) 바이너리 분석 중...";
-
-    const lyricRes = await fetch(targetLyricUrl);
-    if (lyricRes.ok) {
-      const lBuf = await lyricRes.arrayBuffer();
-      const parsedLyrics = lyricParser.parse(lBuf);
-window.iss = parsedLyrics; // 디버그용
-      renderAllLyricsToWindow(parsedLyrics);
-		// ISS 파일명 추출
-		info.files.push(targetLyricUrl.split('/').pop());
-    } else {
-      //document.getElementById('lyricBox').innerText = "🎵 (자막 파일이 존재하지 않는 곡입니다)";
-      document.getElementById('lyricBox').innerHTML = "<span>🎵 (자막 파일이 존재하지 않는 곡입니다)</span>";
-    }
 
     // 🎯 전역 스코프에 최종 확정된 음악 URL 주소 바인딩 (startPlay 함수가 읽어 쓰도록 조율)
     window.ACTIVE_MUSIC_URL = FINAL_MUSIC_URL;
@@ -126,8 +108,6 @@ window.iss = parsedLyrics; // 디버그용
   }
 }
 
-//initSystem();
-
 // 비주얼라이저. 화면이 그려 질때마다 반복함
 // app.js 내 setupVisualizer 함수를 아래 완전판 엔진으로 전면 교정합니다.
 // app.js 내 setupVisualizer 함수를 연산량 최소화 가드 버전으로 교정합니다.
@@ -157,16 +137,16 @@ function setupVisualizer() {
 
   // 레드로 LED 색상 조합 명세
   const colors = {
-    low: "#00FF44",      // 저음역 (그린)
-    mid: "#FFCC00",      // 중음역 (옐로우)
+    low : "#00FF44",     // 저음역 (그린)
+    mid : "#FFCC00",     // 중음역 (옐로우)
     high: "#FF0055",     // 고음역 (레드)
     peak: "#FFFFFF",     // 피크선 (화이트)
-    bg: "#000000"        // 닫힌 배경 (블랙)
+    bg  : "#000000"      // 닫힌 배경 (블랙)
   };
 
   // 피크 보관용 내부 메모리 큐
   const barData = Array.from({ length: barCount }, () => ({
-    value: 0, peak: 0, peakHoldTime: 0, peakFallSpeed: 0
+    value: 0, peak: 2.5, peakHoldTime: 0, peakFallSpeed: 0
   }));
 
   const bufferLength = analyser.frequencyBinCount;
@@ -175,6 +155,7 @@ function setupVisualizer() {
   let lastTime = 0;
   const targetInterval = 1000 / 30; // 30fps 고정 타겟 가드
 
+  // 비주얼라이즈 반복 그리기
   function draw(timestamp) {
     requestAnimationFrame(draw);
 
@@ -235,7 +216,7 @@ function setupVisualizer() {
         peakHoldTime--;
       } else {
         peakFallSpeed += PEAK_FALL_ACCELERATION;
-        peak = Math.max(0, peak - peakFallSpeed);
+        peak = Math.max(2.5, peak - peakFallSpeed); // 피크값 하단에 고정
       }
 
       barData[i] = { value, peak, peakHoldTime, peakFallSpeed };
@@ -250,10 +231,10 @@ function setupVisualizer() {
       for (let segIndex = 0; segIndex < activeTopIndex; segIndex++) {
         const ratio = segIndex / segmentCount;
         let color = colors.low;  
-        //if (ratio >= 5 / 6) color = colors.high;
+        //if (ratio >= 5 / 6) color = colors.high; // 6분할
         //else if (ratio >= 3 / 6) color = colors.mid;
-                if (ratio >= 2 / 3) color = colors.high; // 3분할
-                else if (ratio >= 1 / 3) color = colors.mid;
+		if (ratio >= 2 / 3) color = colors.high;   // 3분할
+		else if (ratio >= 1 / 3) color = colors.mid;
 
         const segY = (segmentCount - 1 - segIndex) * (segmentHeight + segmentGap);
         canvasCtx.fillStyle = color;
@@ -273,8 +254,6 @@ function setupVisualizer() {
   requestAnimationFrame(draw);
 }
 
-
-
 // 재생시각 출력용
 function formatTime(seconds) {
   if (isNaN(seconds) || seconds < 0) return "0:00";
@@ -288,8 +267,6 @@ function startInterfaceLoop() {
   if (uiTimerId !== null) clearInterval(uiTimerId);
 
   uiTimerId = window.setInterval(() => {
-//console.log('연주중')
-//console.log(player.queue.isFinished)
     // 🎯 [완치 포인트 1]: 오디오 프로세서가 노래가 끝났다고 신호를 보내면 즉시 인터페이스 연주 종료 처리 단행
     if (player.queue.isFinished) {
       stopInterface(); 
@@ -309,17 +286,14 @@ function startInterfaceLoop() {
 
     // 1. 코어 클락에서 순정 가사 보정 처리가 완비된 진짜 틱 수령
     const currentEmuTick = player.getCurrentEmuTick();
-    //console.log(currentEmuTick, player.module._emu_get_current_tick()/8)
 		
     // 2. 가사 파서 업데이트 (현재 시각에 딱 매칭되는 한글 텍스트 추출)
     const currentLyricText = lyricParser.update(currentEmuTick);
-    //console.log(currentLyricText);
-    //console.log(iss[iss.findIndex(itm => itm.tick>player.getCurrentEmuTick())-1]);
+
     // 3. 🎯 [UI 드로우 조건절 교정]: 무조건 자막을 밀어넣고 액티브 행을 동적 추적
     if (currentLyricText !== null) {
-      //document.getElementById('lyricBox').innerText = currentLyricText;
       document.getElementById('lyricBox').innerHTML = `<span>${currentLyricText}<span>`;
-      /*
+      /** /
       const activeIdx = lyricParser.currentIndex;
       
       // 전체 가사 목록 중 액티브 클래스 실시간 스왑 처리
@@ -329,7 +303,7 @@ function startInterfaceLoop() {
         activeRow.classList.add('active-line');
         activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
-	  */
+	  /**/
     }
   }, 100); 
 }
@@ -347,7 +321,6 @@ function stopInterface() {
     uiTimerId = null;
   }
 
-  //document.getElementById('lyricBox').innerText = "옥소리 애드립 노래방 시스템 준비 완료";
   //글자크기 조절되게(css 영향받게) 수정
   document.getElementById('lyricBox').innerHTML = "<Span>옥소리 애드립 노래방 시스템 준비 완료</span>";
   document.getElementById('timeText').innerText = "0:00 / 0:00";
@@ -362,6 +335,24 @@ function stopInterface() {
   document.getElementById('btnStop').disabled = true;
 }
 
+// 가사 읽기
+async function getLyric(targetUrl){
+    const targetLyricUrl = getMatchingLyricUrl(targetUrl);
+    document.getElementById('playStatus').innerText = "🔄 IMPlay 표준 조합형 구조(.ISS) 바이너리 분석 중...";
+
+    const lyricRes = await fetch(escape(targetLyricUrl));
+    if (lyricRes.ok) {
+      const lBuf = await lyricRes.arrayBuffer();
+      const parsedLyrics = lyricParser.parse(lBuf);
+window.iss = parsedLyrics; // 디버그용
+      renderAllLyricsToWindow(parsedLyrics);
+		// ISS 파일명 추출
+		info.files.push(targetLyricUrl.split('/').pop());
+    } else {
+      document.getElementById('lyricBox').innerHTML = "<span>🎵 (자막 파일이 존재하지 않는 곡입니다)</span>";
+    }
+}
+
 // 재생 함수
 async function startPlay() {
   document.getElementById('playStatus').innerText = "🔄 음악 오리진 버퍼 연산 중...";
@@ -372,26 +363,26 @@ async function startPlay() {
 
   // 🎯 고정된 MUSIC_URL 대신 오토플레이 캐처가 확정한 유동적 타겟 URL을 바라봅니다.
   const targetUrl = window.ACTIVE_MUSIC_URL || MUSIC_URL;
-
+  
   if (!player.fileLoaded) {
-//    const response = await fetch(MUSIC_URL);
-    const response = await fetch(targetUrl); // 👈 targetUrl로 변경
+	getLyric(targetUrl); // 가사읽기
+
+    const response = await fetch(escape(targetUrl)); // 👈 targetUrl로 변경
     const arrayBuffer = await response.arrayBuffer();
 
     const u8Array = new Uint8Array(arrayBuffer);
-	//info.title = lyricParser.decodeJohab(u8Array.subarray(6, 36));
 	info.title = JohabDecoder.decode(arrayBuffer, 6, 30); // 조합형변환 모듈 변경
-//    await player.loadMusicFile(MUSIC_URL, new Uint8Array(arrayBuffer));
-//console.log('parse_ims',player.parser.parse_ims(arrayBuffer));
+
 	player.parser.parse_ims(arrayBuffer); // ims 파싱
-    await player.loadMusicFile(targetUrl, new Uint8Array(arrayBuffer)); // 👈 targetUrl로 변경
+    await player.loadMusicFile(escape(targetUrl), new Uint8Array(arrayBuffer)); // 👈 targetUrl로 변경
 	info.files.push(player.memory.bnkName); // BNK 파일명
-//	console.log(player.parser.get_mapped_instrument()); // 매핑악기수
   }  
 
-  player.play();
-  document.getElementById('playStatus').innerText = "▶ OPL3 실시간 리샘플링 연주 구동 중";
+  player.play(); // 재생 시작
   
+  // 화면처리
+  document.getElementById('playStatus').innerText = "▶ OPL3 실시간 리샘플링 연주 구동 중";
+
   document.getElementById('btnPlay').disabled = true;
   document.getElementById('btnPause').disabled = false;
   document.getElementById('btnStop').disabled = false;
@@ -401,9 +392,8 @@ async function startPlay() {
   //const info = player.getTrackInfo(); // 사용불가
   document.getElementById('infoTitle').innerText = info.title;
   document.getElementById('infoAuthor').innerText = info.files.join(', ');
-//	console.log(player.parser.get_mapped_instrument()); // 매핑악기수
+
   const mapped = player.parser.get_mapped_instrument(); // 매핑악기수
-//  document.getElementById('infoAuthor').innerText += ` (${mapped.mapped} / ${mapped.ims} / ${mapped.bnk})`;
   document.getElementById('infoAuthor').innerHTML += ` (${mapped.mapped}<span>/</span>${mapped.ims}<span>/</span>${mapped.bnk.toLocaleString()})`;
 
   setupVisualizer();
@@ -493,7 +483,7 @@ document.getElementById('lyricsBtn').addEventListener('click', () => {
 
 });
 
-// 닫기(?) 버튼 클릭
+// 닫기() 버튼 클릭
 const secondSpan = document.querySelector('.title-bar span:nth-of-type(2)');
 secondSpan.addEventListener('click', () => {
 	stopInterface(); // 재생정지
@@ -517,8 +507,8 @@ const isIPad = /iPad/.test(navigator.userAgent) ||
 
 //alert(`아이패드 여부:${isIPad}`);
 if(params.get('ims') && !isiPhone && !isIPad) setTimeout(startPlay,1000);
+//if(params.get('ims') && !isiPhone && !isIPad) await startPlay();
 
-//if(params.get('ims') && isiPhone) setTimeout(startPlay,2000);
 /*
 if(params.get('ims') && isIPad) {
 	setTimeout(()=>{

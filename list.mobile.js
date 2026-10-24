@@ -186,9 +186,18 @@ function hts(idx) { console.log("hts:", songs[idx]); }
 function adplug(idx){
 	console.log(idx,songs[idx])
 	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
-			+ escape(songs[idx].filename)+'.IMS&p=1';
+			+ escape(songs[idx].filename)+'.IMS';
 	console.log(url);
-	location.href = './adplug/?ims='+encodeURIComponent(url);
+	//location.href = './adplug/?ims='+encodeURIComponent(url)+'&p=1';
+	//myIframe.src = './adplug/?ims='+encodeURIComponent(url)+'&i=1';
+	myIframe.contentWindow.extPlay(getSongFile(idx)); // iframe 함수 호출
+	openFullscreen();
+}
+
+function getSongFile(idx){
+	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
+			+ songs[idx].filename+'.IMS';
+	return url;
 }
 
 // 화면회전등 사이즈가 변경되면 처리
@@ -204,3 +213,76 @@ window.addEventListener('resize', () => {
 if (window.location.protocol !== 'https:') {
     window.location.replace(`https:${window.location.href.substring(window.location.protocol.length)}`);
 }
+
+// 채크용
+//  const ua = window.navigator.userAgent;
+//  const vendor = window.navigator.vendor;
+//alert(ua)
+//alert(vendor)
+
+
+// iframe 창 열기
+const container = document.getElementById('container');
+
+// 전체화면 열기 함수
+function openFullscreen() {
+	if(navigator.platform == 'iPhone') {
+            // 1. body를 고정하여 뒷배경 스크롤과 레이아웃이 튀는 현상 방지
+            document.body.classList.add('ios-fix');
+            
+            // 2. 블록 처리 후 iOS WebKit이 화면을 다시 그리도록(Repaint) 강제 트리거
+            container.style.display = "block";
+            container.style.webkitTransform = "translateZ(0)"; // 하드웨어 가속 유도
+            
+            // iOS 렌더링 엔진 속도에 맞춰 안전하게 강제 스크롤 최상단 이동
+            window.scrollTo(0, 0);
+	} else {
+		// 숨겨진 div를 보이게 처리
+		container.style.display = "block";
+	}
+
+	// 브라우저 Fullscreen API 실행 (div를 전체화면으로)
+	//if (container.requestFullscreen) {
+	//    container.requestFullscreen();
+	//} else if (container.webkitRequestFullscreen) { /* 사파리 지원 */
+	//    container.webkitRequestFullscreen();
+	//}
+	
+}
+
+// 전체화면 닫기 함수 (iframe 안에서 호출할 예정)
+function closeFullscreen() {
+	// 전체화면 상태라면 해제
+	//if (document.fullscreenElement || document.webkitFullscreenElement) {
+	//    if (document.exitFullscreen) {
+	//        document.exitFullscreen();
+	//    } else if (document.webkitExitFullscreen) {
+	//        document.webkitExitFullscreen();
+	//    }
+	//}
+	// 다시 div를 숨김 처리
+	if(navigator.platform == 'iPhone') {
+            // 1. 컨테이너를 숨김
+            container.style.display = "none";
+            
+            // 2. body 고정 해제
+            document.body.classList.remove('ios-fix');
+            
+            // 3. iOS 스크롤 버그 방지를 위해 가벼운 리사이즈 트리거
+            window.dispatchEvent(new Event('resize'));
+	} else {
+		container.style.display = "none";
+	}
+}
+
+// 사용자가 ESC 키를 눌러 전체화면을 나갔을 때도 div를 자동으로 숨기도록 이벤트 감지
+document.addEventListener('fullscreenchange', () => {
+	if (!document.fullscreenElement) {
+		container.style.display = "none";
+	}
+});
+document.addEventListener('webkitfullscreenchange', () => {
+	if (!document.webkitFullscreenElement) {
+		container.style.display = "none";
+	}
+});

@@ -83,25 +83,28 @@ export class AdPlugLyricParser {
     return result;
   }
 
+  // iss 파싱
   parse(arrayBuffer) {
     this.lyrics = [];
     this.currentIndex = -1;
 
     const u8Array = new Uint8Array(arrayBuffer);
-    if (u8Array.length < 154) return [];
+    if (u8Array.length < 154) return []; // 비정상 iss 파일
 
     let offset = 150; 
-    this.meta.writer = this.decodeJohab(u8Array.subarray(30, 60)).trim();
-    this.meta.composer = this.decodeJohab(u8Array.subarray(60, 90)).trim();
-    this.meta.singer = this.decodeJohab(u8Array.subarray(90, 120)).trim();
-    this.meta.editor = this.decodeJohab(u8Array.subarray(120, 150)).trim();
+    this.meta.writer = this.decodeJohab(u8Array.subarray(30, 60)).trim(); // 작사
+    this.meta.composer = this.decodeJohab(u8Array.subarray(60, 90)).trim(); // 작곡
+    this.meta.singer = this.decodeJohab(u8Array.subarray(90, 120)).trim(); // 가수
+    this.meta.editor = this.decodeJohab(u8Array.subarray(120, 150)).trim(); // 편곡
 
+	// 제어 레코드 수
     const recCount = u8Array[offset] | (u8Array[offset + 1] << 8);
     offset += 2;
+	// 가사 라인 수
     const lineCount = u8Array[offset] | (u8Array[offset + 1] << 8);
     offset += 2;
-//console.log('recCount',recCount)
-//console.log('lineCount',lineCount)
+
+	// 제어 레코드 추출
     const rawRecords = [];
     for (let i = 0; i < recCount; i++) {
       const kasaTick = u8Array[offset] | (u8Array[offset + 1] << 8);
@@ -109,45 +112,34 @@ export class AdPlugLyricParser {
       rawRecords.push({ kasaTick, line });
       offset += 5;
     }
-	
-	
-window.record = rawRecords;
+window.record = rawRecords; // 디버그용
+
+	// 가사 라인 추출
     const scripts = [];
     for (let i = 0; i < lineCount; i++) {
       const scriptBytes = u8Array.subarray(offset, offset + 64);
       //const textLine = this.decodeJohab(scriptBytes);
       const textLine = JohabDecoder.decode(arrayBuffer, offset, 64);
-	  /*
-	  let textLine = this.decodeJohab(scriptBytes);
-	  try{
-        textLine = JohabDecoder.decode(arrayBuffer, offset, 64);
-		//console.log(i,textLine);
-	  }catch(ex){
-		console.log(ex);
-	  }
-	  */
       scripts.push(textLine);
       offset += 64;
     }
-window.scripts = scripts;
-	//console.log(scripts);
+window.scripts = scripts; // 디버그용
 
+	// 제어 레코드 와 가사라인을 매핑
     rawRecords.forEach(rec => {
       if (rec.line >= 0 && rec.line < scripts.length) {
         const cleanText = scripts[rec.line];
-        // 🎯 [교정]: 기존의 무리한 *8 곱셈을 전면 제거하여 AdPlugPlayer 코어 틱과 1:1 크기 일치
+        // 🎯 AdPlugPlayer 코어 틱과 1:1 매칭
         this.lyrics.push({ tick: rec.kasaTick, text: cleanText });
       }
     });
 
-//console.log('this.lyrics.length',this.lyrics.length)
-/**/
+    // 틱 수로 정렬
     this.lyrics.sort((a, b) => a.tick - b.tick);
+	// 틱과 가사가 같은 행이면 이면 제거
     this.lyrics = this.lyrics.filter((item, index, self) => 
       index === self.findIndex((t) => t.tick === item.tick && t.text === item.text)
     );
-/**/
-//console.log('this.lyrics.length',this.lyrics.length)
 
     return this.lyrics;
   }
@@ -172,30 +164,32 @@ window.scripts = scripts;
     this.currentIndex = activeIndex;
     return activeIndex >= 0 ? this.lyrics[activeIndex].text : "🎵 (간주 중)";
   }
-/*  * /
-// AdPlugLyricParser.js 의 update 메서드를 실시간 스피커 프레임 대응용으로 정밀 교정합니다.
-update(currentRealFrames) {
-  if (this.lyrics.length === 0) return null;
+  /* 틱값을 시간으로 임의 계산함 - 음악과 싱크가 맞지 않아 사용하지 않음 * /
+  // AdPlugLyricParser.js 의 update 메서드를 실시간 스피커 프레임 대응용으로 정밀 교정합니다.
+  update(currentRealFrames) {
+    if (this.lyrics.length === 0) return null;
+    
+    // 🎯 [싱크 완치 공식]: 44100Hz 오디오 프레임 단위를 오리지널 노래방 자막 틱 스케일로 정밀   역산합니다.
+    // 에뮬레이터 내부 타이머 메커니즘과 연동되어 귀에 들리는 타이밍과 자막이 정확히 일치하게   됩니다.
+    const currentTick = (currentRealFrames / 44100) * (70 / 8); 
   
-  // 🎯 [싱크 완치 공식]: 44100Hz 오디오 프레임 단위를 오리지널 노래방 자막 틱 스케일로 정밀 역산합니다.
-  // 에뮬레이터 내부 타이머 메커니즘과 연동되어 귀에 들리는 타이밍과 자막이 정확히 일치하게 됩니다.
-  const currentTick = (currentRealFrames / 44100) * (70 / 8); 
-
-  let activeIndex = -1;
-  for (let i = 0; i < this.lyrics.length; i++) {
-    if (currentTick >= this.lyrics[i].tick) {
-      activeIndex = i;
-    } else {
-      break;
+    let activeIndex = -1;
+    for (let i = 0; i < this.lyrics.length; i++) {
+      if (currentTick >= this.lyrics[i].tick) {
+        activeIndex = i;
+      } else {
+        break;
+      }
     }
+  
+    this.currentIndex = activeIndex;
+    return activeIndex >= 0 ? this.lyrics[activeIndex].text : "🎵 (간주 중)";
   }
-
-  this.currentIndex = activeIndex;
-  return activeIndex >= 0 ? this.lyrics[activeIndex].text : "🎵 (간주 중)";
-}
-*/
+  */
   reset() {
     this.currentIndex = -1;
+	this.is_ims_loaded = false;
+	this.is_bnk_loaded = false;
   }
   
   // ims 파서
@@ -260,7 +254,7 @@ update(currentRealFrames) {
   get_string(buffer,start,length){
   	const cutbuf = buffer.slice(start, start+length);
   	const cutbuf_end_index = cutbuf.indexOf(0);
-//  	const str = cutbuf.slice(0,cutbuf_end_index).toString('utf-8');
+  	//const str = cutbuf.slice(0,cutbuf_end_index).toString('utf-8');
   	const str = new TextDecoder('utf-8').decode(cutbuf.slice(0,cutbuf_end_index));
   	return str;
   }
@@ -270,19 +264,19 @@ update(currentRealFrames) {
     const u8Array = new Uint8Array(arrayBuffer);
     const dataView = new DataView(arrayBuffer);
 	
-	let bnkHeader = {};
+	let bnkHeader = {}; // 해더정보 버퍼
 
     const view = new DataView(arrayBuffer);
     bnkHeader.majorVersion = view.getUint8(0);
 	bnkHeader.minorVersion = view.getUint8(1);
-    let sigChars = [];
+    let sigChars = []; // 시그니처 버퍼 
     for(let i=0; i<6; i++) sigChars.push(String.fromCharCode(view.getUint8(2+i)));
     bnkHeader.sig = sigChars.join('');
-    bnkHeader.ins_num = view.getInt16(8, true);
-	bnkHeader.max_num = view.getInt16(10, true);
-    bnkHeader.offsetList = view.getInt32(12, true);
-	bnkHeader.offsetTimber = view.getInt32(16, true);
-    let bnkInsNames = [];
+    bnkHeader.ins_num = view.getInt16(8, true); // 사용 악기수
+	bnkHeader.max_num = view.getInt16(10, true); // 전체 악기수
+    bnkHeader.offsetList = view.getInt32(12, true); // 악기명 시작 offset
+	bnkHeader.offsetTimber = view.getInt32(16, true); // 악기소리정보 시작 offset
+    let bnkInsNames = []; // 악기명 버퍼
 	let listPos = bnkHeader.offsetList;
     for(let i=0; i<bnkHeader.max_num; i++) {
         let idx = view.getInt16(listPos, true);
@@ -296,7 +290,7 @@ update(currentRealFrames) {
 		bnkInsNames.push({ index: idx, active: active, name: name });
 		listPos += 12;
     }
-	/*
+	/* 악기정보 - 사용할 곳이 없음.
     bnkTimbres = []; let timbrePos = bnkHeader.offsetTimber;
     for(let i=0; i<bnkHeader.max_num; i++) {
         let timbre = {
@@ -317,17 +311,20 @@ update(currentRealFrames) {
 	return this.bnk;
   }
   
+  // 악기 매칭 개수 구함
   mapping(){
 	if(!this.is_ims_loaded || !this.is_bnk_loaded) return;
-	/**/
+	this.ims.instrument.mapped = 0; // 중복 누적 보정용
+
+	// 악기명 매칭 개수 구함
 	this.ims.instrument.names.forEach(name=>{
 		//if(this.bnk.names.includes(name)) this.ims.instrument.mapped ++;
 		//console.log(name, this.bnk.names.some(item=>item.name==name.toUpperCase()))
 		if(this.bnk.names.some(item=>item.name.toUpperCase()==name.toUpperCase())) this.ims.instrument.mapped ++;
 	});
-	/**/
   }
   
+  // 악기 수 및 매칭 개수 정보
   get_mapped_instrument(){
 	if(!this.is_ims_loaded || !this.is_bnk_loaded) return null;
 	//console.log(this.is_bnk_loaded, this.bnk);

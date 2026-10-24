@@ -7,11 +7,15 @@
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
+    <!-- 닫기 버튼 -->
+    <button id="closeFullScreen" style="display:none;">전체화면 닫기</button>
 
   <div class="dos-window">
     <div class="title-bar">
       <span>AdPlug 가라오케 연주기</span>
-      <span style="color: var(--color-yellow)">[■]</span>
+      <!-- <span style="color: var(--color-yellow)">[■]</span> -->
+      <span style="color: var(--color-yellow);cursor:pointer;">[❌]</span>
+      <!-- <span style="color: var(--color-yellow)">[<svg focusable="false" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M336-280l-56-56L424-480L280-623l56-56L480-535L623-679l56,56L535-480L679-336l-56,56L480-424L336-280Z"></path></svg>]</span> -->
     </div>
     
     <div class="content-area">

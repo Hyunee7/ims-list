@@ -74,7 +74,7 @@ window['AdPlugPlayer'] = player; // 디버그용?
     const FINAL_MUSIC_URL = queryMusicUrl ? decodeURIComponent(queryMusicUrl) : MUSIC_URL; // 🎯 외부 입력 우선 순위 적용
 
     // 이하는 교정 완료된 정밀 64바이트 파라미터 주사 결합 유지 사양
-    info.files.push(FINAL_MUSIC_URL.split('/').pop());
+    //info.files.push(FINAL_MUSIC_URL.split('/').pop());
 
     // 🎯 전역 스코프에 최종 확정된 음악 URL 주소 바인딩 (startPlay 함수가 읽어 쓰도록 조율)
     window.ACTIVE_MUSIC_URL = FINAL_MUSIC_URL;
@@ -271,6 +271,7 @@ function startInterfaceLoop() {
     if (player.queue.isFinished) {
       stopInterface(); 
 	  if(isPopup) history.go(-1); // 이전 페이지 복귀
+	  if(params.get('i')) closeParent();  // 전체화면 (iframe) 닫기
       return;
     }
     if (!player.isPlaying || player.isPaused) return; // 일시정지
@@ -363,6 +364,7 @@ async function startPlay() {
 
   // 🎯 고정된 MUSIC_URL 대신 오토플레이 캐처가 확정한 유동적 타겟 URL을 바라봅니다.
   const targetUrl = window.ACTIVE_MUSIC_URL || MUSIC_URL;
+  info.files.push(targetUrl.split('/').pop()); // 음악 파일명 저장
   
   if (!player.fileLoaded) {
 	getLyric(targetUrl); // 가사읽기
@@ -487,10 +489,23 @@ document.getElementById('lyricsBtn').addEventListener('click', () => {
 const secondSpan = document.querySelector('.title-bar span:nth-of-type(2)');
 secondSpan.addEventListener('click', () => {
 	stopInterface(); // 재생정지
-	history.go(-1); // 이전 페이지로
+	if(params.get('p'))	history.go(-1); // 이전 페이지로
+	if(params.get('i')) closeParent();  // 전체화면 (iframe) 닫기
 });
 
-// app.js 맨 하단 영역에 추가 (모바일 화면 회전 시 비주얼라이저 자석 배열 실시간 갱신 장치)
+        function closeParent() {
+            // 부모 창(window.parent)의 closeFullscreen 함수를 실행합니다.
+            if (window.parent && typeof window.parent.closeFullscreen === 'function') {
+                window.parent.closeFullscreen();
+            } else {
+                console.error("부모 창의 함수에 접근할 수 없습니다. (도메인이 다르거나 함수가 없습니다.)");
+            }
+        }
+
+document.getElementById('closeFullScreen').addEventListener('click', closeParent);
+
+
+// 모바일 화면 회전 시 비주얼라이저 자석 배열 실시간 갱신 장치
 window.addEventListener('resize', () => {
 	//alert(navigator.appVersion);
   if (player.isPlaying && !player.isPaused) {
@@ -505,10 +520,35 @@ const isiPhone = /iPhone/i.test(navigator.userAgent);
 const isIPad = /iPad/.test(navigator.userAgent) || 
                            (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
 
+// 자동재생용 - 애플계열에서 안됨.
 //alert(`아이패드 여부:${isIPad}`);
-if(params.get('ims') && !isiPhone && !isIPad) setTimeout(startPlay,1000);
+//if(params.get('ims') && !isiPhone && !isIPad) setTimeout(startPlay,1000);
 //if(params.get('ims') && !isiPhone && !isIPad) await startPlay();
+//setTimeout(startPlay,5000); // autoplay 애플계열에서 안됨.
 
+
+
+
+
+
+// 외부에서 재생 호출
+export function extPlay(music){
+	stopInterface();           // 재생정지
+	player.queue.clear();      // 이전 큐 정리
+	player.fileLoaded = false; // 로드된 파일 없음
+	info = {title:"", files:[]}; // 곡명, 곡 파일들
+
+	window.ACTIVE_MUSIC_URL = null;
+	MUSIC_URL = music;         // 재생할 파일 적용
+	startPlay();               // 재생시작
+}
+window.extPlay = extPlay; // export 가 안되서 강제 전달
+
+ 
+ 
+ 
+ 
+ 
 /*
 if(params.get('ims') && isIPad) {
 	setTimeout(()=>{

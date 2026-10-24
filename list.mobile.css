@@ -238,6 +238,87 @@ input[type="checkbox"]:checked + label::after {
 .notitle {
     color: var(--dos-gray);
 }
+
+        /* 초기에는 div를 완전히 숨깁니다 */
+        #container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+        }
+        /* iframe이 전체화면 영역을 꽉 채우도록 설정합니다 */
+        #myIframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        /* 기본 페이지 스타일 */
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: sans-serif;
+        }
+
+        /* 
+           div 태그를 전체화면으로 만드는 핵심 CSS입니다.
+           초기에는 display: none으로 숨겨둡니다.
+        */
+        #container {
+            display: none; 
+            position: fixed;   /* 스크롤과 상관없이 화면에 고정 */
+            top: 0;
+            left: 0;
+            width: 100vw;      /* 브라우저 화면 가로 전체 */
+            height: 100vh;     /* 브라우저 화면 세로 전체 */
+            z-index: 9999;     /* 다른 어떤 요소보다 가장 위에 배치 */
+            background-color: #fff;
+        }
+
+        /* iframe이 부모 div를 꽉 채우도록 설정 */
+        #myIframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+		
+	/*** iPhone 용 ***/	
+    @supports (-webkit-touch-callout: none) {
+        /* iOS Safari에서만 동작하는 영역 */
+        /* iOS에서 배경 스크롤이 움직이면서 튕기는 버그를 원천 차단 */
+        body.ios-fix {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* iOS 16 WebKit 호환 최적화 레이아웃 */
+        #container {
+            display: none; 
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            /* 100vh 대신 dvh(동적 뷰포트)와 fill-available을 써서 주소창 버그를 해결합니다 */
+            height: 100%;
+            height: -webkit-fill-available;
+            height: 100dvh; 
+            z-index: 99999; /* 최상단 보장 */
+            background-color: #ffffff;
+            
+            /* iOS 기기에서 강제 터치 스크롤 최적화 */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #myIframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block; /* 공백 방지 */
+        }
+    }
+	/*** iPhone 용 ***/	
+
 @media (max-width: 599px) { /* iPlay40 이 600 이라서 599로 함. */
     body { padding: 5px; font-size: 13px; }
     .dos-panel { padding: 6px; }

@@ -1,4 +1,4 @@
-// app.js
+// app.js (Part 1/2)
 import { AdPlugPlayer } from './AdPlugPlayer.js';
 import { AdPlugLyricParser } from './AdPlugLyricParser.js';
 
@@ -21,7 +21,6 @@ let uiTimerId = null;
 let isUserDraggingSlider = false; 
 let info = {title:"", files:[]}; // 곡명, 곡 파일들
 
-
 // ISS 파일 경로
 function getMatchingLyricUrl(musicUrl) {
   const lastDotIdx = musicUrl.lastIndexOf(".");
@@ -32,23 +31,21 @@ function getMatchingLyricUrl(musicUrl) {
 // 전체 가사 출력. 중복되는 라인는 제거함.
 function renderAllLyricsToWindow(lyricsArray) {
   const viewer = document.getElementById('allLyricsView');
-  viewer.innerHTML = ""; 
+  //viewer.classList.remove("hidden");
+  //viewer.innerHTML = "";
+  // 최신 브라우저에서 지원하는 가장 깔끔한 자식 제거 방법
+  viewer.replaceChildren(); 
   if (lyricsArray.length === 0) {
     viewer.innerHTML = "<div style='color:#808080; text-align:center;'>가사 데이터가 비어 있습니다.</div>";
     return;
   }
 
-  //console.log(lyricsArray);
-  // 가사 중복라인 제거
-  const deDupingLyricsArray = lyricsArray.filter((item, index) => {
-    return lyricsArray.findIndex(t => t.text === item.text) === index;
-  });
-  //console.log(lyricsArray);
+  const deDupingLyricsArray = lyricsArray;
   // 가사 출력
-  deDupingLyricsArray.forEach((line, idx) => {
+  lyricsArray.forEach((line, idx) => {
     const row = document.createElement('div');
     row.id = `lyric-line-${idx}`;
-    row.innerText = line.text;
+    row.innerText = line;
     viewer.appendChild(row);
   });
 }
@@ -83,17 +80,6 @@ window['AdPlugPlayer'] = player; // 디버그용?
     if (queryMusicUrl) {
       document.getElementById('playStatus').innerText = "🔮 외부 음원 버퍼 로드 완료! 브라우저 보안으로 인해 화면 아무 곳이나 클릭하시면 즉시 연주가 개시됩니다.";
       document.getElementById('btnPlay').disabled = false;
-      
-      // 현대 브라우저 오디오 오토플레이 제약 우회 장치: 사용자가 화면 아무 데나 누르는 순간 바로 연주 스타트!
-	  /** /
-      const triggerAutoPlay = async () => {
-        window.removeEventListener('click', triggerAutoPlay);
-        window.removeEventListener('touchstart', triggerAutoPlay); // 모바일 터치 대응
-        await startPlay(); // 자동 재생 전사 실행
-      };
-      window.addEventListener('click', triggerAutoPlay);
-      window.addEventListener('touchstart', triggerAutoPlay);
-	  /**/
     } else {
       // 일반 진입 시 기존 순정 안내 그대로 유지
       document.getElementById('playStatus').innerText = "✅ 모든 버퍼 탑재 완료! 재생 버튼을 누르세요.";
@@ -261,13 +247,14 @@ function formatTime(seconds) {
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
+// app.js (Part 2/2)
 
 // 연주중 처리 루프
 function startInterfaceLoop() {
   if (uiTimerId !== null) clearInterval(uiTimerId);
 
   uiTimerId = window.setInterval(() => {
-    // 🎯 [완치 포인트 1]: 오디오 프로세서가 노래가 끝났다고 신호를 보내면 즉시 인터페이스 연주 종료 처리 단행
+    // 🎯 오디오 프로세서가 노래가 끝났다고 신호를 보내면 즉시 인터페이스 연주 종료 처리 단행
     if (player.queue.isFinished) {
       stopInterface(); 
 	  if(isPopup) history.go(-1); // 이전 페이지 복귀
@@ -286,17 +273,47 @@ function startInterfaceLoop() {
     }
 
     // 1. 코어 클락에서 순정 가사 보정 처리가 완비된 진짜 틱 수령
-    const currentEmuTick = player.getCurrentEmuTick();
+    const currentEmuTick = player.getCurrentEmuTick()-8;
 		
     // 2. 가사 파서 업데이트 (현재 시각에 딱 매칭되는 한글 텍스트 추출)
-    const currentLyricText = lyricParser.update(currentEmuTick);
+    const lyricSnapshot = lyricParser.update(currentEmuTick);
+
 
     // 3. 🎯 [UI 드로우 조건절 교정]: 무조건 자막을 밀어넣고 액티브 행을 동적 추적
-    if (currentLyricText !== null) {
-      document.getElementById('lyricBox').innerHTML = `<span>${currentLyricText}<span>`;
-      /** /
-      const activeIdx = lyricParser.currentIndex;
+    // 🎯 [Wipe 노래방 렌더링 코어 교정]
+    // 🎯 [완치된 노래방 와이프 렌더러]
+    // 🎯 [완치된 3조각 노래방 와이프 렌더러]
+    // 🎯 [완치된 무공백 3조각 노래방 와이프 렌더러]
+    // 🎯 [고정폭 + 여러 공백 허용 + 좌측 정렬 완치 버전 렌더러]
+    // 🎯 [순정 레이아웃 복원 + 가변 부분 하이라이트 3조각 렌더러]
+    // 🎯 [오리지널 바이트 3조각 다이렉트 디코딩 렌더러]
+    // 🎯 [완치된 경계 가드형 누적 조각 자막 렌더러]
+    if (lyricSnapshot !== null) {
+      const { textRuns } = lyricSnapshot;
+      const box = document.getElementById('lyricBox');
+
+      // 정상적인 하이라이트 범위 정보가 수급되었는지 검증
+      if (textRuns && textRuns.length > 0) {
+        // 🎯 [완치 포인트]: 태그 간의 공백이 렌더링되지 않도록 한 줄로 바짝 붙여서 주사합니다.
+        // 태그 간 가짜 공백을 차단하면서 오리지널 여러 스페이스공백 폭을 그대로 유지 출력
+        // 태그 사이 공백 간섭을 원천 방어하여 가사 문자열 조각들을 깔끔하게 출력
+        // 태그 간 가짜 공백 격벽 차단 밀착 사양 주사
+        // 이미 파서 내부에서 글자 단위 완벽 마감 처리가 끝난 조각들을 결합 수행
+        let finalHtml = "";
+        textRuns.forEach((run) => {
+          if (run.lit) {
+            // 불이 들어온 액티브 가사 구간 출력
+            finalHtml += `<span style="color:#f5c200;">${run.text}</span>`;
+          } else {
+            // 간주 중이거나 하이라이트 대기 상태
+            finalHtml += `<span>${run.text}</span>`;
+          }
+        });
+        box.innerHTML = finalHtml;
+      }
       
+      // 전체 가사 목록 액티브 추적 및 자동 스크롤
+      const activeIdx = lyricParser.currentIndex;
       // 전체 가사 목록 중 액티브 클래스 실시간 스왑 처리
       document.querySelectorAll('#allLyricsView div').forEach(el => el.classList.remove('active-line'));
       const activeRow = document.getElementById(`lyric-line-${activeIdx}`);
@@ -304,26 +321,26 @@ function startInterfaceLoop() {
         activeRow.classList.add('active-line');
         activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
-	  /**/
+
     }
   }, 100); 
 }
 
 // 연주 종료시 화면 처리
 function stopInterface() {
-  player.stop();
-  lyricParser.reset();
-  // 🎯 [재생 불가 완치]: 큐 엔진에 잠겨있던 종료 플래그를 완전히 잠금 해제(false)합니다.
+  player.stop();        // 재생중지
+  lyricParser.reset();  // 가사상태 초기화
+  // 🎯 큐 엔진에 잠겨있던 종료 플래그를 완전히 잠금 해제(false)합니다.
   if (player.queue) {
     player.queue.isFinished = false; 
   }
-  if (uiTimerId !== null) {
+  if (uiTimerId !== null) { // 연주 루프 정지
     clearInterval(uiTimerId);
     uiTimerId = null;
   }
 
   //글자크기 조절되게(css 영향받게) 수정
-  document.getElementById('lyricBox').innerHTML = "<Span>옥소리 애드립 노래방 시스템 준비 완료</span>";
+  document.getElementById('lyricBox').innerHTML = "<Span>               🎶 옥소리 애드립 노래방 시스템 준비 완료</span>";
   document.getElementById('timeText').innerText = "0:00 / 0:00";
   document.getElementById('progressBar').value = 0;
   document.getElementById('progressBar').disabled = true;
@@ -336,7 +353,7 @@ function stopInterface() {
   document.getElementById('btnStop').disabled = true;
 }
 
-// 가사 읽기
+// 가사 읽기 - 이부분은 player 모듈로 옮겨야겠음.
 async function getLyric(targetUrl){
     const targetLyricUrl = getMatchingLyricUrl(targetUrl);
     document.getElementById('playStatus').innerText = "🔄 IMPlay 표준 조합형 구조(.ISS) 바이너리 분석 중...";
@@ -344,13 +361,12 @@ async function getLyric(targetUrl){
     const lyricRes = await fetch(escape(targetLyricUrl));
     if (lyricRes.ok) {
       const lBuf = await lyricRes.arrayBuffer();
-      const parsedLyrics = lyricParser.parse(lBuf);
-window.iss = parsedLyrics; // 디버그용
-      renderAllLyricsToWindow(parsedLyrics);
+      const parsedLyrics = lyricParser.parse(lBuf); // 가사 파싱
+      await renderAllLyricsToWindow(lyricParser.scripts);
 		// ISS 파일명 추출
 		info.files.push(targetLyricUrl.split('/').pop());
     } else {
-      document.getElementById('lyricBox').innerHTML = "<span>🎵 (자막 파일이 존재하지 않는 곡입니다)</span>";
+      document.getElementById('lyricBox').innerHTML = "<span>            🎵 (자막 파일이 존재하지 않는 곡입니다)</span>";
     }
 }
 
@@ -361,12 +377,14 @@ async function startPlay() {
   if (player.queue) {
     player.queue.isFinished = false;
   }
-
-  // 🎯 고정된 MUSIC_URL 대신 오토플레이 캐처가 확정한 유동적 타겟 URL을 바라봅니다.
-  const targetUrl = window.ACTIVE_MUSIC_URL || MUSIC_URL;
-  info.files.push(targetUrl.split('/').pop()); // 음악 파일명 저장
   
   if (!player.fileLoaded) {
+	info = {title:"", files:[]}; // 곡명, 곡 파일들
+
+    // 🎯 고정된 MUSIC_URL 대신 오토플레이 캐처가 확정한 유동적 타겟 URL을 바라봅니다.
+    const targetUrl = window.ACTIVE_MUSIC_URL || MUSIC_URL;
+    info.files.push(targetUrl.split('/').pop()); // 음악 파일명 저장
+	
 	getLyric(targetUrl); // 가사읽기
 
     const response = await fetch(escape(targetUrl)); // 👈 targetUrl로 변경
@@ -380,6 +398,7 @@ async function startPlay() {
 	info.files.push(player.memory.bnkName); // BNK 파일명
   }  
 
+  handleVisibilityChange(); // audioContext 깨우기
   player.play(); // 재생 시작
   
   // 화면처리
@@ -482,7 +501,6 @@ document.getElementById('lyricsBtn').addEventListener('click', () => {
     overlay.classList.remove("hidden");
   else
     overlay.classList.add("hidden");
-
 });
 
 // 닫기() 버튼 클릭
@@ -493,14 +511,14 @@ secondSpan.addEventListener('click', () => {
 	if(params.get('i')) closeParent();  // 전체화면 (iframe) 닫기
 });
 
-        function closeParent() {
-            // 부모 창(window.parent)의 closeFullscreen 함수를 실행합니다.
-            if (window.parent && typeof window.parent.closeFullscreen === 'function') {
-                window.parent.closeFullscreen();
-            } else {
-                console.error("부모 창의 함수에 접근할 수 없습니다. (도메인이 다르거나 함수가 없습니다.)");
-            }
-        }
+function closeParent() {
+    // 부모 창(window.parent)의 closeFullscreen 함수를 실행합니다.
+    if (window.parent && typeof window.parent.closeFullscreen === 'function') {
+        window.parent.closeFullscreen();
+    } else {
+        console.error("부모 창의 함수에 접근할 수 없습니다. (도메인이 다르거나 함수가 없습니다.)");
+    }
+}
 
 document.getElementById('closeFullScreen').addEventListener('click', closeParent);
 
@@ -536,7 +554,6 @@ export function extPlay(music){
 	stopInterface();           // 재생정지
 	player.queue.clear();      // 이전 큐 정리
 	player.fileLoaded = false; // 로드된 파일 없음
-	info = {title:"", files:[]}; // 곡명, 곡 파일들
 
 	window.ACTIVE_MUSIC_URL = null;
 	MUSIC_URL = music;         // 재생할 파일 적용
@@ -580,3 +597,23 @@ if (isPC()) {
 } else {
     console.log("모바일 환경입니다.");
 }
+
+
+// 오디오 잠김 현상 해제용
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    // iOS에서는 interrupted 상태이거나 완전히 먹통이 된 경우가 많으므로 안전하게 resume 처리
+    if (player.audioContext.state === 'suspended' || player.audioContext.state === 'interrupted') {
+      player.audioContext.resume().then(() => {
+        console.log('AudioContext가 성공적으로 재개되었습니다.');
+      }).catch(err => {
+        console.error('재개 실패:', err);
+      });
+    }
+  }
+}
+
+// 브라우저 탭 활성화 감지
+document.addEventListener('visibilitychange', handleVisibilityChange);
+// 앱 포커스 감지 (창 전환 등)
+window.addEventListener('focus', handleVisibilityChange);

@@ -181,6 +181,7 @@ button:disabled {
   container-type: inline-size; /* 부모 요소를 컨테이너로 지정 */
   white-space: nowrap;         /* 줄바꿈 방지 */
   overflow: hidden;            /* 넘침 방지 (선택 사항) */
+  display: flex;
 }
 
 .auto-fit-box span {

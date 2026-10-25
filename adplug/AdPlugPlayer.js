@@ -291,6 +291,7 @@ export class AdPlugPlayer {
   getCurrentEmuTick() {
     if (!this.module || !this.isPlaying || typeof this.module._emu_get_current_tick !== "function") return 0;
     return this.module._emu_get_current_tick() / 8;
+//    return this.module._emu_get_current_tick() ;
   }
 
   seekToTime(seconds) {

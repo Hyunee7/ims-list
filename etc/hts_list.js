@@ -35,7 +35,11 @@ function parseHtsListFile(arrayBuffer) {
     const filenameBytes = recordBuffer.slice(52, 64);   // 파일명 영역 (12바이트 고정)
 
     // 바이트 데이터를 텍스트로 변환 및 공백 제거
-    const title = decoder.decode(titleBytes).trim();
+    //const title = decoder.decode(titleBytes).trim();
+    const title = JohabDecoder.decode(titleBytes, 0, titleBytes.length).trim();
+	console.log(title)
+//    const title = JohabDecoder.decode(recordBuffer, ).trim();
+    var songTitle = JohabDecoder.decode(buffer, offset + 21, 30);
     const artist = decoder.decode(artistBytes).trim();
     const filename = decoder.decode(filenameBytes).trim();
 

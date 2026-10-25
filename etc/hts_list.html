@@ -3,229 +3,359 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTS 플레이리스트 바이너리 파서</title>
+    <title>HTS V1.23 재생목록 마스터 파서 (최종 완성본)</title>
     <style>
-        body {
-            font-family: 'Malgun Gothic', dotum, sans-serif;
-            margin: 30px;
-            background-color: #f8f9fa;
-            color: #333;
-        }
-        h1, h2 {
-            color: #2c3e50;
-        }
-        /* 드롭존 스타일 */
+        body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; margin: 25px; background-color: #f3f4f6; color: #1f2937; }
+        h1 { color: #111827; font-size: 1.6rem; margin-bottom: 5px; }
+        .subtitle { color: #4b5563; font-size: 0.9rem; margin-bottom: 20px; }
+        
         #drop-zone {
-            width: 100%;
-            height: 150px;
-            border: 3px dashed #3498db;
-            border-radius: 10px;
-            background-color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            color: #3498db;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 30px;
+            width: 100%; height: 110px; border: 3px dashed #10b981; border-radius: 10px;
+            background-color: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; color: #10b981; font-weight: bold; cursor: pointer; margin-bottom: 20px;
+            transition: all 0.2s ease-in-out; text-align: center; padding: 0 15px; box-sizing: border-box;
         }
-        #drop-zone.dragover {
-            background-color: #e8f4fd;
-            border-color: #2980b9;
-            color: #2980b9;
-            transform: scale(1.01);
-        }
-        /* 정보 메타데이터 박스 */
-        .info-box {
-            background-color: #fff;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 25px;
-            display: none;
-        }
-        .info-box p {
-            margin: 8px 0;
-            font-size: 0.95rem;
-        }
-        .info-box span {
-            font-weight: bold;
-            color: #e74c3c;
-        }
-        /* 테이블 스타일 */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            border-radius: 8px;
-            overflow: hidden;
-            display: none;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #edf2f7;
-        }
-        th {
-            background-color: #2c3e50;
-            color: #fff;
-            font-weight: 600;
-        }
-        tr:hover {
-            background-color: #f1f2f6;
-        }
-        .text-center {
-            text-align: center;
-        }
+        #drop-zone.dragover { background-color: #ecfdf5; border-color: #059669; color: #059669; }
+        #drop-zone.error { border-color: #ef4444; background-color: #fef2f2; color: #dc2626; }
+        
+        .header-card { background: #1e293b; color: #f8fafc; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; display: none; }
+        .header-card h3 { margin-top: 0; color: #38bdf8; font-size: 1.05rem; border-bottom: 1px solid #334155; padding-bottom: 6px; }
+        .header-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.85rem; }
+        .header-item span { font-weight: bold; color: #fbbf24; }
+        
+        .info-card { background: #fff; padding: 12px 18px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; display: none; font-size: 0.9rem; }
+        .info-card span { font-weight: bold; color: #2563eb; }
+        
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 6px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: none; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f3f4f6; font-size: 0.85rem; vertical-align: middle; }
+        
+        th { background-color: #1e293b; color: #fff; font-weight: 600; cursor: pointer; user-select: none; transition: background-color 0.2s; }
+        th:hover { background-color: #334155; }
+        th.sort-asc::after { content: " ▲"; font-size: 0.75rem; color: #38bdf8; }
+        th.sort-desc::after { content: " ▼"; font-size: 0.75rem; color: #38bdf8; }
+        
+        .mono { font-family: 'Consolas', monospace; font-weight: bold; color: #0284c7; }
+        .debug-text { font-family: 'Consolas', monospace; font-size: 0.75rem; color: #4b5563; line-height: 1.4; white-space: nowrap; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; font-weight: bold; font-size: 0.8rem; }
+        .badge-rf4 { background-color: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+        .badge-sf4 { background-color: #e0e7ff; color: #4338ca; border: 1px solid #a5b4fc; }
+        .badge-tf4 { background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+        .badge-other { background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+        
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
     </style>
+    <script src="../adplug/johab-decoder.js"></script>
 </head>
 <body>
 
-    <h1>HTS 플레이리스트 바이너리 파서</h1>
-    <p>도스(DOS) 시절 음악 재생목록 바이너리 파일을 드래그하여 아래 영역에 떨어뜨려 주세요.</p>
+    <h1>HTS V1.23 재생목록 마스터 파서 (자립형 복원 완성본)</h1>
+    <p class="subtitle">에러 함수 참조 오류를 완치하고, 브라우저 미지원 규격인 Johab(1361)을 극복하는 자체 비트 조립 엔진 세트입니다.</p>
 
-    <!-- 드래그 앤 드롭 영역 -->
-    <div id="drop-zone">이곳에 파일을 드래그 앤 드롭 하세요 (또는 클릭하여 선택)</div>
+    <div id="drop-zone">여기에 HTS 리스트 파일을 드래그 앤 드롭 하세요 (클릭 시 파일 선택)</div>
     <input type="file" id="file-input" style="display: none;">
 
-    <!-- 파일 정보 메타데이터 출력 영역 -->
-    <div id="info-box" class="info-box">
-        <h2>파일 정보</h2>
-        <p>📄 파일 이름: <span id="info-name" style="color:#2c3e50;">-</span></p>
-        <p>🔑 헤더 시그니처: <span id="info-signature">-</span> (크기: <span id="info-hsize">-</span> 바이트)</p>
-        <p>📊 분석된 목록 크기: <span id="info-lsize">-</span> 바이트 (총 <span id="info-count">-</span>개 항목 추출)</p>
+    <div id="header-card" class="header-card">
+        <h3>📊 파일 고유 헤더 명세 (0x00 ~ 0x15 Area)</h3>
+        <div class="header-grid">
+            <div class="header-item">📄 매직 시그니처: <span id="hd-sig">-</span></div>
+            <div class="header-item">⚙️ 파일 버전: <span id="hd-ver">-</span></div>
+            <div class="header-item">📦 헤더 전체 헥스: <span id="hd-hex" style="font-family: monospace; font-size: 0.8rem; color:#67e8f9;">-</span></div>
+            <div class="header-item">🔢 파일 내 수록곡 개수 플래그 (0x14~0x15 Uint16): <span id="hd-count">-</span></div>
+        </div>
     </div>
 
-    <!-- 목록 출력 테이블 -->
+    <div id="info-card" class="info-card">
+        <strong>분석 파일:</strong> <span id="info-name">-</span> | 
+        <strong>전수 파싱 완료:</strong> 총 <span id="info-count">0</span>개 트랙 로딩 완료
+    </div>
+
     <table id="result-table">
         <thead>
             <tr>
-                <th style="width: 8%;" class="text-center">번호</th>
-                <th style="width: 25%;">파일 이름 (Filename)</th>
-                <th style="width: 42%;">곡 제목 (Title)</th>
-                <th style="width: 25%;">아티스트/제작자 (Artist)</th>
+                <th style="text-align:center; width: 7%;" data-sort="index">번호</th>
+                <th style="text-align:center; width: 10%;" data-sort="rawLength">파일명길이</th>
+                <th style="width: 12%;" data-sort="filename">파일명</th>
+                <th style="text-align:right; width: 10%;" data-sort="rawSize">용량 (Bytes)</th>
+                <!-- <th style="width: 25%;" data-sort="rawMarkerDec">제어마커 명세 (값 / Hex / Uint32 Dec)</th> -->
+                <th style="width: 25%;" data-sort="rawMarkerDec">생성시각</th>
+                <th style="text-align:center; width: 10%;" data-sort="rawTitleLength">제목 길이</th>
+                <th style="width: 26%;" data-sort="title">곡 제목</th>
             </tr>
         </thead>
-        <tbody id="result-body">
-            <!-- 파싱된 데이터가 여기에 삽입됩니다 -->
-        </tbody>
+        <tbody id="result-body"></tbody>
     </table>
+<script>
+    // --- [★ 순수 비트 역산 자립형 조합형(Johab 1361) 한글 디코더] ---
+    function decodeHtsTitlePureJohab(buffer) {
+        if (buffer.byteLength === 0) return '<span style="color:#aaa;">연주곡(무제)</span>';
+        const view = new DataView(buffer);
+        let result = "";
+        let i = 0;
 
-    <script>
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const infoBox = document.getElementById('info-box');
-        const resultTable = document.getElementById('result-table');
-        const resultBody = document.getElementById('result-body');
+        const choMap = { 2:0, 3:1, 4:2, 5:3, 6:4, 7:5, 8:6, 9:7, 10:8, 11:9, 12:10, 13:11, 14:12, 15:13, 16:14, 17:15, 18:16, 19:17, 20:18 };
+        const jungMap = { 3:2, 4:3, 5:4, 6:5, 7:6, 8:7, 11:8, 12:9, 13:10, 14:11, 15:12, 16:13, 19:14, 20:15, 21:16, 22:17, 23:18, 24:19, 27:20, 28:21, 29:22 };
+        const jongMap = { 1:1, 2:2, 3:3, 4:4, 5:5, 6:6, 7:7, 8:8, 9:9, 10:10, 11:11, 12:12, 13:13, 14:14, 15:15, 16:16, 17:17, 19:18, 20:19, 21:20, 22:21, 23:22, 24:23, 25:24, 26:25, 27:26, 28:27 };
 
-        // 드롭존 클릭 시 파일 선택 창 띄우기
-        dropZone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+        while (i < view.byteLength) {
+            const b1 = view.getUint8(i);
+            if (b1 === 0) break;
 
-        // 드래그 이벤트 핸들러
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
+            if ((b1 & 0x80) === 0) {
+                if (b1 >= 32) result += String.fromCharCode(b1);
+                i += 1;
+            } else if (i + 1 < view.byteLength) {
+                const b2 = view.getUint8(i + 1);
+                const word = (b1 << 8) | b2;
 
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
+                const cIdx = choMap[(word >> 10) & 0x1F];
+                const mIdx = jungMap[(word >> 5) & 0x1F];
+                const tBit = word & 0x1F;
+                const tIdx = tBit === 0 ? 0 : jongMap[tBit];
 
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
-
-        // 파일 처리 핵심 함수
-        function handleFiles(files) {
-            if (files.length === 0) return;
-            const file = files[0];
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const arrayBuffer = e.target.result;
-                const result = parseHtsListFile(arrayBuffer);
-                renderResult(file.name, result);
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        // JavaScript 바이너리 파서 함수 (EUC-KR 디코딩 적용)
-        function parseHtsListFile(arrayBuffer) {
-            const HEADER_SIZE = 32;
-            const RECORD_SIZE = 64;
-            const decoder = new TextDecoder('euc-kr'); // 도스 시절 한글 깨짐 복원용
-
-            // 1. 헤더 파싱
-            const headerBuffer = arrayBuffer.slice(0, HEADER_SIZE);
-            const headerText = decoder.decode(headerBuffer).replace(/[\x00-\x1F]/g, '').trim();
-
-            // 2. 레코드 목록 파싱
-            const listBuffer = arrayBuffer.slice(HEADER_SIZE);
-            const totalRecords = Math.floor(listBuffer.byteLength / RECORD_SIZE);
-            const items = [];
-
-            for (let i = 0; i < totalRecords; i++) {
-                const startOffset = i * RECORD_SIZE;
-                const endOffset = startOffset + RECORD_SIZE;
-                const recordBuffer = listBuffer.slice(startOffset, endOffset);
-
-                // 고정 바이트 구조 기반 슬라이싱
-                const titleBytes = recordBuffer.slice(8, 40);       // 곡 제목 (32바이트)
-                const artistBytes = recordBuffer.slice(40, 52);     // 아티스트 (12바이트)
-                const filenameBytes = recordBuffer.slice(52, 64);   // 파일명 (12바이트)
-
-                const title = decoder.decode(titleBytes).trim();
-                const artist = decoder.decode(artistBytes).trim();
-                const filename = decoder.decode(filenameBytes).trim();
-
-                if (filename) {
-                    items.push({
-                        index: i + 1,
-                        filename: filename,
-                        title: title || '제목 없음',
-                        artist: artist || '알 수 없음'
-                    });
+                if (cIdx !== undefined && mIdx !== undefined && tIdx !== undefined) {
+                    const charCode = 0xAC00 + (cIdx * 21 * 28) + ((mIdx - 2) * 28) + tIdx;
+                    result += String.fromCharCode(charCode);
+                } else {
+                    result += " "; 
                 }
+                i += 2;
+            } else {
+                i += 1;
+            }
+        }
+        return result.trim() || '<span style="color:#aaa;">연주곡(무제)</span>';
+    }
+
+    let globalTracks = [];
+    let currentSortKey = "index";
+    let isSortAsc = true;
+
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const infoCard = document.getElementById('info-card');
+    const resultTable = document.getElementById('result-table');
+    const resultBody = document.getElementById('result-body');
+
+    function resetZoneStatus() {
+        dropZone.classList.remove('error');
+        dropZone.innerHTML = "여기에 HTS 리스트 파일을 드래그 앤 드롭 하세요 (클릭 시 파일 선택)";
+    }
+
+    function showZoneError(msg) {
+        dropZone.classList.add('error');
+        dropZone.innerHTML = "❌ 에러 발생: " + msg;
+    }
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => { 
+        resetZoneStatus();
+        if (e.target.files && e.target.files.length > 0) handleFiles(e.target.files[0]); // 첫 파일 객체 단건 전달 고정
+    });
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => { 
+        e.preventDefault(); 
+        dropZone.classList.remove('dragover'); 
+        resetZoneStatus();
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFiles(e.dataTransfer.files[0]); // 첫 파일 객체 단건 전달 고정
+        }
+    });
+
+
+
+    function handleFiles(pureFileObject) {
+        if (!(pureFileObject instanceof Blob)) {
+            showZoneError("올바른 파일 객체가 전달되지 않았습니다.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) { 
+            try {
+                parseHtsPerfectSpecification(pureFileObject.name, e.target.result); 
+            } catch(err) {
+                showZoneError("바이너리 스트림 연산 충돌: " + err.message);
+            }
+        };
+        reader.readAsArrayBuffer(pureFileObject);
+    }
+
+/**
+
+2. 코드 동작 원리 설명
+
+• >>> 16 (부호 없는 우측 시프트): 32비트 정수에서 상위 16비트(날짜)만 취하기 위해 비트를 오른쪽으로 16칸 밀어냅니다.
+• & 0x1F, & 0x3F 등 (비트 AND 연산): 원하는 비트 크기만큼만 마스킹하여 정확한 숫자 데이터를 추출합니다. (예: 일(day)은 5비트이므로 0x1F(이진수 11111)와 AND 연산을 합니다.)
+• * 2 (초 단위 보정): FAT 파일 시스템은 제한된 5비트 안에 초를 넣기 위해 0~29까지만 저장하고, 뿌려줄 때 2를 곱해 0~58초를 표현하는 방식을 씁니다.
+*/
+    function parseDosDateTime(uint32) {
+//    function parseDosDateTime(bytes) {
+        // 1. 리틀 엔디안 4바이트를 하나의 32비트 정수(Int)로 결합
+//        const uint32 = (bytes[3] << 24) | (bytes[2] << 16) | (bytes[1] << 8) | bytes[0];
+
+        // 2. 상위 16비트(날짜)와 하위 16비트(시간) 분리
+        const datePart = (uint32 >>> 16) & 0xFFFF;
+        const timePart = uint32 & 0xFFFF;
+
+        // 3. 날짜 비트 필드 추출
+        const year  = ((datePart >>> 9) & 0x7F) + 1980; // 7비트 (연도)
+        const month = (datePart >>> 5) & 0x0F;          // 4비트 (월)
+        const day   = datePart & 0x1F;                 // 5비트 (일)
+
+        // 4. 시간 비트 필드 추출
+        const hour   = (timePart >>> 11) & 0x1F;        // 5비트 (시)
+        const minute = (timePart >>> 5) & 0x3F;         // 6비트 (분)
+        const second = (timePart & 0x1F) * 2;           // 5비트 (초, 2를 곱함)
+
+        // 5. 보기 편하게 두 자리 숫자로 패딩하여 포맷팅
+        const pad = (num) => String(num).padStart(2, '0');
+
+        return `${year}-${pad(month)}-${pad(day)} ${pad(hour)}:${pad(minute)}:${pad(second)}`;
+    }
+    
+    // --- [바이너리 스캔 및 가변 구조 해석 파이프라인] ---
+    function parseHtsPerfectSpecification(fileName, arrayBuffer) {
+        const view = new DataView(arrayBuffer);
+        const asciiDecoder = new TextDecoder('ascii');
+        globalTracks = []; 
+        
+        let magicSig = "", fileVer = "", headerHexStr = "";
+        try { magicSig = asciiDecoder.decode(arrayBuffer.slice(0, 10)).trim(); } catch(e) {}
+        try { fileVer = asciiDecoder.decode(arrayBuffer.slice(10, 18)).replace(/[\x00-\x1F]/g, '').trim(); } catch(e) {}
+        for (let h = 0; h < 22; h++) { headerHexStr += view.getUint8(h).toString(16).padStart(2, '0').toUpperCase() + " "; }
+        
+        const headerTrackCount = view.getUint16(20, true);
+        
+        document.getElementById('hd-sig').textContent = magicSig || "HTS 포맷";
+        document.getElementById('hd-ver').textContent = fileVer || "V1.23";
+        document.getElementById('hd-hex').textContent = `[ ${headerHexStr.trim()} ]`;
+        document.getElementById('hd-count').textContent = `${headerTrackCount} 개 트랙`;
+        document.getElementById('header-card').style.display = 'block';
+
+        let i = 22; 
+
+        while (i < view.byteLength) {
+            if (i >= view.byteLength) break;
+
+            const nameLength = view.getUint8(i); // 1. 파일명 길이
+            
+            if (nameLength === 0 || nameLength > 40) { 
+                i += 1; 
+                continue; 
+            }
+            if (i + 1 + nameLength + 9 > view.byteLength) break;
+
+            let filename = "";
+            for (let k = 0; k < nameLength; k++) { 
+                filename += String.fromCharCode(view.getUint8(i + 1 + k)); // 2.파일명 
+            }
+            filename = filename.replace(/[^A-Za-z0-9.\-_]/g, '').trim();
+
+            const sizeOffset = i + 1 + nameLength;
+            const fileSize = view.getUint32(sizeOffset, true); // 3.파일용량
+
+            const markerOffset = sizeOffset + 4;
+            let markerAscii = "";
+            let markerHexArr = [];
+            const markerUint32Dec = view.getUint32(markerOffset, true); // 4.마커?
+
+            for (let b = 0; b < 4; b++) {
+                const byteVal = view.getUint8(markerOffset + b);
+                markerHexArr.push(byteVal.toString(16).padStart(2, '0').toUpperCase());
+                if (byteVal >= 32 && byteVal <= 126) markerAscii += String.fromCharCode(byteVal);
+            }
+            markerAscii = markerAscii.trim() || "f4";
+
+            let badgeClass = "badge-other";
+            if (markerAscii.includes("rf4")) badgeClass = "badge-rf4";
+            else if (markerAscii.includes("sf4")) badgeClass = "badge-sf4";
+            else if (markerAscii.includes("tf4")) badgeClass = "badge-tf4";
+
+            const debugCellHtml = `
+                <div style="margin-bottom:3px;"><span class="badge ${badgeClass}">${markerAscii}</span></div>
+                <div class="debug-text">⚡ Hex: [ ${markerHexArr.join(' ')} ]</div>
+                <div class="debug-text">🔢 Dec(Uint32): <strong>${markerUint32Dec.toLocaleString()}</strong></div>
+            `;
+
+            const titleLenOffset = markerOffset + 4;
+            const titleLength = view.getUint8(titleLenOffset); // 5.제목길이
+
+            const titleStartOffset = titleLenOffset + 1;
+            
+            let actualTitleLen = titleLength;
+            if (titleStartOffset + actualTitleLen > view.byteLength) {
+                actualTitleLen = view.byteLength - titleStartOffset;
             }
 
-            return {
-                header: { size: HEADER_SIZE, signature: headerText },
-                list: { size: listBuffer.byteLength, items: items }
-            };
-        }
-
-        // 화면에 결과 렌더링
-        function renderResult(fileName, parsedData) {
-            // 메타데이터 출력
-            document.getElementById('info-name').textContent = fileName;
-            document.getElementById('info-signature').textContent = parsedData.header.signature || "없음(공백)";
-            document.getElementById('info-hsize').textContent = parsedData.header.size;
-            document.getElementById('info-lsize').textContent = parsedData.list.size;
-            document.getElementById('info-count').textContent = parsedData.list.items.length;
-
-            // 테이블 내용 초기화 후 새로 매핑
-            resultBody.innerHTML = '';
-            parsedData.list.items.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="text-center">${item.index}</td>
-                    <td style="font-family: monospace; font-weight: bold; color: #2980b9;">${item.filename}</td>
-                    <td>${item.title}</td>
-                    <td style="color: #7f8c8d;">${item.artist}</td>
-                `;
-                resultBody.appendChild(row);
+            const titleBuf = arrayBuffer.slice(titleStartOffset, titleStartOffset + actualTitleLen);
+            //const title = decodeHtsTitlePureJohab(titleBuf);
+//            const title = JohabDecoder.decode(titleBuf, 0, titleBuf.length).trim();
+            const title = JohabDecoder.decode(titleBuf, 0, titleBuf.length).replace(/[ ]/,'&nbsp;'); // 6.제목
+//	console.log(title)
+//console.log(`title[${title}]`);
+            globalTracks.push({
+                index: globalTracks.length + 1,
+                rawLength: nameLength,
+                nameLength: nameLength + " Bytes",
+                filename: filename,
+                rawSize: fileSize,
+                size: fileSize.toLocaleString(),
+                //markerHtml: debugCellHtml,
+                markerHtml: parseDosDateTime(markerUint32Dec),
+                rawMarkerDec: markerUint32Dec,
+                rawTitleLength: titleLength,
+                titleLength: titleLength + " Bytes",
+                title: title
             });
 
-            // 숨겨진 영역 표시
-            infoBox.style.display = 'block';
-            resultTable.style.display = 'table';
+            i = titleStartOffset + actualTitleLen;
         }
-    </script>
+
+        renderTableData();
+    }
+
+    function renderTableData() {
+        globalTracks.sort((a, b) => {
+            let valA = a[currentSortKey];
+            let valB = b[currentSortKey];
+            if (typeof valA === "string") return isSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            return isSortAsc ? valA - valB : valB - valA;
+        });
+
+        resultBody.innerHTML = '';
+        globalTracks.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td style="text-align:center;">${item.index}</td>
+                <td style="text-align:center; font-family:monospace; color:#6b7280;">${item.nameLength}</td>
+                <td class="mono">${item.filename}</td>
+                <td class="text-right" style="font-family:monospace; color:#475569; font-weight:500;">${item.size}</td>
+                <td>${item.markerHtml}</td>
+                <td style="text-align:center; font-family:monospace; color:#6b7280;">${item.titleLength}</td>
+                <td style="font-weight:600; color:#1e293b; font-size:0.9rem;">${item.title}</td>
+            `;
+            resultBody.appendChild(row);
+        });
+
+        document.getElementById('info-count').textContent = globalTracks.length;
+        infoCard.style.display = 'block';
+        resultTable.style.display = 'table';
+    }
+
+    document.querySelectorAll('#result-table th').forEach(th => {
+        th.addEventListener('click', () => {
+            const sortKey = th.getAttribute('data-sort');
+            if (!sortKey || globalTracks.length === 0) return;
+            if (currentSortKey === sortKey) { isSortAsc = !isSortAsc; } else { currentSortKey = sortKey; isSortAsc = true; }
+            document.querySelectorAll('#result-table th').forEach(item => item.classList.remove('sort-asc', 'sort-desc'));
+            th.classList.add(isSortAsc ? 'sort-asc' : 'sort-desc');
+            renderTableData();
+        });
+    });
+</script>
+</body>
+</html>
+
 </body>
 </html>

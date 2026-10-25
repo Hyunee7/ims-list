@@ -146,9 +146,9 @@ function listPut(page){
 
 function toggleIssCheckbox() {
     isIss = !isIss;
-    listPut(1);
+    //listPut(1);
+	randomPage();
 }
-
 
 function init(){
 	songs = getLocalDB();
@@ -176,34 +176,51 @@ window.addEventListener("load", async ()=> {
 });
 
 /* 원본 인터페이스 액션 함수 브릿지 정의 */
-function viewIss(idx) { console.log("viewIss:", songs[idx]); }
-function viewIms(idx) { console.log("viewIms:", songs[idx]); }
+function viewIss(idx) {
+	//console.log("viewIss:", songs[idx]); 
+	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
+			+ escape(songs[idx].filename)+'.ISS';
+	//console.log(url);
+	location.href = './etc/lyric.html?url='+encodeURIComponent(url)+'&p=1';
+}
+function viewIms(idx) {
+	//console.log("viewIms:", songs[idx]); 
+	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
+			+ escape(songs[idx].filename)+'.IMS';
+	//console.log(url);
+	location.href = './etc/ims.html?url='+encodeURIComponent(url)+'&p=1';
+}
 function ocplay(idx) { console.log("ocplay:", songs[idx]); }
 //function adplug(idx) { console.log("adplug:", songs[idx]); }
 function hts(idx) { console.log("hts:", songs[idx]); }
 
 // adplug 모듈로 연주
 function adplug(idx){
-	console.log(idx,songs[idx])
-	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
-			+ escape(songs[idx].filename)+'.IMS';
-	console.log(url);
+	//console.log(idx,songs[idx])
+	//var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
+	//		+ escape(songs[idx].filename)+'.IMS';
+	//console.log(url);
 	//location.href = './adplug/?ims='+encodeURIComponent(url)+'&p=1';
 	//myIframe.src = './adplug/?ims='+encodeURIComponent(url)+'&i=1';
+	
+	// iframe 으로 처리
+//	myIframe.contentWindow.document.getElementById('allLyricsView').innerHTML = '';
 	myIframe.contentWindow.extPlay(getSongFile(idx)); // iframe 함수 호출
-	openFullscreen();
+	openFullscreen(); // 숨긴 div(iframe 포함된) 보이기
 }
 
-function getSongFile(idx){
-	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
-			+ songs[idx].filename+'.IMS';
+// 노래목록에서 full 경로 구하기 (도스경로->서버경로)
+function getSongFile(idx, ext='.IMS'){
+	var url = '../dos/C_Drv'
+	        + songs[idx].path.replace(/\\/g,'/')
+		                     //.replace(/&/g,'%26')
+				             .substring(2) + '/'
+			+ songs[idx].filename+ext;
 	return url;
 }
 
 // 화면회전등 사이즈가 변경되면 처리
 window.addEventListener('resize', () => {
-  //const currentWidth = window.innerWidth;
-  //console.log(`현재 뷰포트 가로폭: ${currentWidth}px`);
   isMobile = window.innerWidth<600; // 가로폭이 600px 미만이면 모바일 처리
   //randomPage();
   listPut( current_page );

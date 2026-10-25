@@ -189,12 +189,3 @@ function downloadJSON(lines, filename) {
         document.body.removeChild(link);
     }
 }
-
-function setLocalDb(songs){
-//    localStorage.setItem('songs', songs);
-    localStorage.setItem('songs', JSON.stringify(songs));
-}
-
-function getLocalDB(){
-	return JSON.parse(localStorage.getItem('songs'))||[];
-}

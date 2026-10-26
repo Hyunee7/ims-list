@@ -6,9 +6,10 @@ export class AdPlugMemory {
     this.player = player;
   }
   
-  bnkName = '';
-  imsName = '';
+  bnkName = ''; // bnk 파일명
+  imsName = ''; // ims 파일명
 
+  // 엔진에 Uint8Array 형식 BNK 데이타 전달
   addBankFile(filename, binaryData) {
     const module = this.player.module;
     const nameBytes = new TextEncoder().encode(filename + "\0");
@@ -31,6 +32,7 @@ export class AdPlugMemory {
     return false;
   }
 
+  // 엔진에 Uint8Array 형식 IMS 데이타 전달
   loadMusicFileToWasm(filename, binaryData) {
     const module = this.player.module;
     const pureName = filename.split('/').pop();

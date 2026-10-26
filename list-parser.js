@@ -36,6 +36,10 @@ Number.prototype.format = function(){
 Number.prototype.timeFormat = function(){ 
     return Math.floor(this / 60) + ':' + (this % 60).to2(); 
 }
+String.prototype.toDate = function(){
+	let m = this.match(/(\d{4})-(\d{2})-(\d{2})/);
+	return (((+m[1]-1980)&0x7f)<<9 | +m[2]<<5 | +m[3]);
+}
 
 
 // 전역 관리 변수 
@@ -52,10 +56,22 @@ function listSort(id){
     listPut(1);
 }
 
+// 검색어, iss 여부 등 필터링 된 리스트 추출
+function getList(){
+    var searchInput = document.getElementById('search');
+    var filterWord = searchInput ? searchInput.value.toUpperCase() : '';
+
+    var list = songs.filter((el) => {
+        var matchWord = el.title.replace(/[ ]/g,'').toUpperCase().indexOf(filterWord) > -1;
+        return isIss ? matchWord : (matchWord && el.isssize);
+    });
+	return list;
+}
+
 // 랜덤페이지
 function randomPage(){
   setTimeout(()=>{
-	var total_page=parseInt((songs.length-1)/page_num)+1; // 전체 페이지 구함
+	var total_page=parseInt((getList().length-1)/page_num)+1; // 전체 페이지 구함
 	var rnd = Math.floor(Math.random()*total_page)%total_page+1;
 	listPut( rnd );
   },100);
@@ -148,13 +164,37 @@ function randomPage(){
 		const finalData = await Promise.all(promises);
 		console.log('모든 fetch 완료:', finalData.length);
 		finalData.map(rs=>loadList(rs));
-
+console.log(songs)
+		await notImsLoad();
+		
 		randomPage();
 		setLocalDb(songs);
 
 	  } catch (error) {
 		console.error('하나 이상의 fetch에서 에러 발생:', error);
 	  }
+	}
+
+	// ims 가 아닌 파일들 읽기
+	async function notImsLoad(){
+		// fetch()를 이용해 json 파일 요청
+		fetch('./notims.json')
+		  .then((response) => {
+			// 응답을 json() 메서드로 파싱
+			return response.json();
+		  })
+		  .then((data) => {
+			console.log('불러온 데이터:', data);
+			// 여기서 데이터 처리 로직 작성
+			data.forEach(item=>{
+				item.index = songs.length;
+				item.duration = Math.round(item.duration);
+				songs.push(item);
+			});
+		  })
+		  .catch((error) => {
+			console.error('에러 발생:', error);
+		  });
 	}
 
 function downloadCSV(lines, filename) {

@@ -1,6 +1,11 @@
-import { AdPlugMemory } from './AdPlugMemory.js';
-import { AdPlugQueue } from './AdPlugQueue.js';
-import { AdPlugLyricParser } from './AdPlugLyricParser.js';
+/**
+ * 재생관련 제어 모듈
+ */
+ 
+ // 외부모듈
+import { AdPlugMemory      } from './AdPlugMemory.js'; // 힙메모리 적제 모듈
+import { AdPlugQueue       } from './AdPlugQueue.js';  // 오디오 큐 모듈
+import { AdPlugLyricParser } from './AdPlugLyricParser.js'; // 파싱(가사) 모듈
 
 export class AdPlugPlayer {
   constructor() {
@@ -23,13 +28,19 @@ export class AdPlugPlayer {
     this.tickBeat = 24;
 
     this.memory = new AdPlugMemory(this);
-    this.queue = new AdPlugQueue(this);
+    this.queue  = new AdPlugQueue(this);
 	this.parser = new AdPlugLyricParser(); // 파서모듈
 
     // 🎯 [로컬 고정선]: 플레이어가 실행되는 호스트 로컬 최상위 폴더의 순정 뱅크 경로 명시
     this.defaultBankPath = './STANDARD.BNK';
+	
+	this.ims = {};
+	this.imsName = "";
+	this.issName = "";
+	this.bnkName = "";
   }
 
+  // adplug 엔진 로드
   async loadEngine(jsPath = './adplug.js', wasmPath = './adplug.wasm') {
     if (this.module) return this.module;
     try {
@@ -44,6 +55,7 @@ export class AdPlugPlayer {
     }
   }
 
+  // 엔진 초기화
   async initEngine(processorPath = './audio-queue-processor.js') {
     if (!this.module) throw new Error("엔진 로드 선행 필요");
     
@@ -76,6 +88,7 @@ export class AdPlugPlayer {
     this.queue.allocated = 0;
   }
 
+  // 엔진에 BNK 추가
   addBankFile(filename, binaryData) {
     return this.memory.addBankFile(filename, binaryData);
   }
@@ -104,7 +117,7 @@ export class AdPlugPlayer {
     this.queue.stopNode('reset');
 
     try {
-      const pureImsName = musicFileUrl.split("/").pop() || "sample.ims";
+      const pureImsName = musicFileUrl.split("/").pop() || "sample.ims"; this.imsName = pureImsName;
       
       const targetBnkUrl = this.getSideFileUrl(musicFileUrl, ".BNK");
       const targetIssUrl = this.getSideFileUrl(musicFileUrl, ".ISS");
@@ -139,7 +152,7 @@ export class AdPlugPlayer {
       ]);
 
       // 3. 악기 뱅크 리소스 데이터 WASM 가상 메모리에 먼저 도킹
-      const pureBnkName = bnkUrlToFetch.split("/").pop() || "STANDARD.BNK";
+      const pureBnkName = bnkUrlToFetch.split("/").pop() || "STANDARD.BNK"; this.bnkName = pureBnkName;
       this.addBankFile(pureBnkName, new Uint8Array(bnkBuffer));
 	  
 	  this.parser.parse_bnk(bnkBuffer); // 뱅크파일 파싱
@@ -151,16 +164,20 @@ export class AdPlugPlayer {
         this.fileLoaded = false;
         return false;
       }
+	  this.ims = this.parser.parse_ims(imsBuffer); // ims 파싱
 
       // 5. 노래방 자막 파일(.ISS) 존재 여부 실시간 확인 사양
+      console.log(`%c🔄 IMPlay 표준 조합형 구조(.ISS) 바이너리 분석 중...`, "color: #54ffff; font-weight:bold;");
       const hasIssFile = await this.checkFileExists(targetIssUrl);
       this.currentIssData = null; 
 
       if (hasIssFile) {
+        this.issName = targetIssUrl.substring(targetIssUrl.lastIndexOf('/')+1);
         console.log(`%c[자동 매핑 가사 발견]: %c${targetIssUrl} 동기화 레이어 바인딩`, "color: #54ffff; font-weight:bold;");
         const issResponse = await fetch(targetIssUrl);
         if (issResponse.ok) {
           this.rawIssBuffer = await issResponse.arrayBuffer();
+		  this.parser.parse(this.rawIssBuffer); // 가사 파싱
         }
       } else {
         console.log(`%c[가사 자막 유실 안내]: %c해당 곡은 ISS 가사 보기를 생략합니다.`, "color: #aaaaaa;");
@@ -225,6 +242,12 @@ export class AdPlugPlayer {
     }
     this.queue.clear();
     //this.fileLoaded = true;
+	
+	this.ims = {};
+	this.imsName = "";
+	this.issName = "";
+	this.bnkName = "";
+	//this.parser.reset(); // 파싱정보 초기화
   }
 
   // 트랙정보 - 사용할 수 없음.

@@ -1,12 +1,8 @@
 // AdPlugLyricParser.js (Part 1/2)
 /**
- * AdPlug .ISS 노래방 가사 자막 IMPlay 오리지널 바이너리 명세 정밀 파서 (가사 싱크 완치 버전)
  * AdPlug .ISS 노래방 가사 자막 IMPlay 오리지널 바이너리 명세 정밀 파서 (가사 싱크 및 실시간 하이라이트 완치 버전)
- * AdPlug .ISS 가사 싱크 및 공백 멈춤 버그 완치 버전 파서
  * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (인위적 8배수 연산 전면 제거)
- * AdPlug .ISS 가사 싱크 순정 틱 버전 파서 (시간축 보정 전면 제거판)
  * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (클리어 타겟 및 싱크 완치 패치판)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (잘못된 누적 계산식 전면 제거 및 절대 좌표 직결판)
  * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (순정 타임라인 및 프레임 정밀 매핑 버전)
  * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (오리지널 공백 및 고정폭 보존판)
  * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (조합형 특수문자 인덱스 붕괴 완치판)
@@ -29,10 +25,9 @@ export class AdPlugLyricParser {
   bnk = {header:null,names:[]};
   is_bnk_loaded = false;
 
-  // iss 파싱
   // iss 파싱 (바이트 기반 하이라이트 인터벌 사전 실시간 추출 구조화)
   parse(arrayBuffer) {
-    this.lyrics = [];
+    //this.lyrics = [];
     this.currentIndex = -1;
     this.lineBytes = [];
 
@@ -40,7 +35,6 @@ export class AdPlugLyricParser {
     if (u8Array.length < 154) return []; // 비정상 iss 파일
 
     // 헤더 구조에서 V2 판단 (IMPlay Song V 문자열 포함 여부 검증)
-    // 헤더 구조에서 V2 버전 유무 확인
     let headEnd = 0;
     while (headEnd < 154 && u8Array[headEnd] !== 0) headEnd++;
     const v2 = String.fromCharCode(...u8Array.subarray(0, headEnd)).includes("IMPlay Song V");
@@ -51,7 +45,8 @@ export class AdPlugLyricParser {
     this.meta.writer   = JohabDecoder.decode(arrayBuffer,  30,  30).trim(); // 작사
     this.meta.composer = JohabDecoder.decode(arrayBuffer,  60,  30).trim(); // 작곡
     this.meta.singer   = JohabDecoder.decode(arrayBuffer,  90, 120).trim(); // 가수
-    this.meta.editor   = JohabDecoder.decode(arrayBuffer, 120, 150).trim(); // 편곡
+    this.meta.editor   = JohabDecoder.decode(arrayBuffer, 120, 150).trim(); // ISS 제작
+console.log(this.meta);
 
 	// 제어 레코드 수
     const recCount = u8Array[offset] | (u8Array[offset + 1] << 8);
@@ -60,28 +55,20 @@ export class AdPlugLyricParser {
     const lineCount = u8Array[offset] | (u8Array[offset + 1] << 8);
     offset += 2;
 
-	// 제어 레코드 추출
-    // 1. 제어 레코드(큐) 추출 및 시간 동기화 규격 교정
-    // 1. 🎯 [순정 틱 추출]: 인위적인 8배수 연산을 완전히 배제하고 파일 내부 원본 틱 스케일 유지
-    // 1. 🎯 [완전 순정 틱 사용]: 어떠한 보정이나 예외 연산 없이 파일 내 원본 stored 값을 그대로 틱으로 매핑
-    // 1. 제어 레코드 추출 (오리지널 순수 틱 유지)
-    // 1. 제어 레코드(큐) 수급 및 IMPlay 순정 오리지널 틱 역산
+    // 1. 🎯 제어 레코드(큐) 추출 및 시간 동기화 규격 교정
     const rawRecords = [];
     let due = 0;
     for (let i = 0; i < recCount; i++) {
-      const stored = u8Array[offset] | (u8Array[offset + 1] << 8);
-      const line = u8Array[offset + 2];
-      const startX = u8Array[offset + 3];
-      const widthX = u8Array[offset + 4];
+      const stored = u8Array[offset] | (u8Array[offset + 1] << 8); // 틱값
+      const line   = u8Array[offset + 2]; // 가사라인
+      const startX = u8Array[offset + 3]; // 하이라이트 시작지점
+      const widthX = u8Array[offset + 4]; // 하이라이트 끝지점
 
-      // 🎯 [완치 포인트 1]: 파일 내 압축된 타임 스케일을 오리지널 IMS 순정 클록 틱으로 복원 연산
-      // V2 파일은 그대로 쓰고, 구버전 파일은 * 10 / 8 (비트시프트 정수연산)을 적용합니다.
-      // 🎯 [완치 포인트 1]: IMPlay 소프트웨어 내부 디스어셈블 시각 동기화 공식 복원
-//      const tick8 = v2 ? stored : ((stored * 10) >> 3) & 0xffff;
-//      due = Math.max(due, tick8 * 8); // 시간이 역행하지 않도록 누적 상한 가드
-//      due = Math.max(due, stored); // 시간이 역행하지 않도록 누적 상한 가드만 적용
-//      due = Math.max(due, stored); // 시간이 거꾸로 흐르지 않게 상한 가드만 유지
-      due = Math.max(due, stored); // 시간이 거꾸로 흐르지 않게 가드만 적용
+      // 🎯 V2 파일은 그대로 쓰고, 구버전 파일은 * 10 / 8 (비트시프트 정수연산)을 적용합니다.
+      const tick8 = v2 ? stored : ((stored * 10) >> 3) & 0xffff;
+      //due = Math.max(due, tick8 * 8); // 시간이 역행하지 않도록 누적 상한 가드
+      due = Math.max(due, tick8); // 시간이 역행하지 않도록 누적 상한 가드만 적용
+      //due = Math.max(due, stored); // 시간이 거꾸로 흐르지 않게 상한 가드만 유지
 
       rawRecords.push({ tick: due, line, startX, widthX });
       offset += 5;
@@ -90,12 +77,10 @@ window.record = rawRecords; // 디버그용
 
 	// 가사 라인 추출
     // 2. 가사 라인 디코딩 처리
-    // 가사 라인 디코딩 처리
-    // 2. 가사 라인 원본 버퍼 보존 (트리밍 금지)
     // 2. 가사 라인 원본 버퍼 보존 (트리밍 및 정규식 전면 제거)
     // 🎯 [순정 고정폭 버퍼 복원]: trim()이나 replace()를 전면 차단하여 연속된 내부 공백 레이아웃을 완벽 보존합니다.
     // 2. 🎯 [완치 포인트]: 64바이트 고정 슬라이싱 범위 초과 에러 차단 방어선
-    // 2. 가사 라인 오리지널 바이트 버퍼 통째로 보존
+    // 2. 🎯 가사 라인 오리지널 바이트 버퍼 통째로 보존
     for (let i = 0; i < lineCount; i++) {
       // 파일이 급격히 끝났을 때를 대비하여 남은 데이터의 최대 한계 오프셋을 안전하게 역산
       const availableLen = Math.min(64, u8Array.length - offset);
@@ -113,8 +98,6 @@ window.record = rawRecords; // 디버그용
     }
 
     // 3. IMPlay 오리지널 자막 지우기(Wipe) 구간 연산 엔진 적용
-    // IMPlay 오리지널 자막 지우기(Wipe) 구간 연산 엔진 적용
-    // IMPlay 오리지널 자막 지우기(Wipe) 구간 연산 엔진 가동
 //    this.lyricSpans = this._resolveIssSpans(rawRecords, this.lineBytes);
 
 
@@ -124,14 +107,7 @@ window.record = rawRecords; // 디버그용
     let reach = 0;
     let activeRuns = [];
 
-	// 제어 레코드 와 가사라인을 매핑
-    // 4. 레코드 단위 매핑 배열 완성
-    // 4. 순정 시간축 기반 1:1 결합 매핑
-    // 3. 🎯 [잘못된 계산식 전면 폐기 및 절대 좌표 매핑]
-    // 복잡한 큐 누적 연산을 전면 폐기하고, 각 큐가 가진 원래의 startX와 widthX 범위를 
-    // 바이트에서 한글 글자 수 기준으로 다이렉트 변환하여 정확한 1:1 절대적 타임라인 생성
-    // 3. 🎯 [완치 포인트 2]: 글자 단위 물리 바이트 오프셋 맵 매핑 엔진
-    // 3. 🎯 [바이트 좌표 1:1 직결 매핑]
+    // 4. 🎯 제어 레코드 와 가사라인을 매핑 [바이트 좌표 1:1 직결 매핑]
     rawRecords.forEach((rec) => {
       if (rec.line >= 0 && rec.line < this.lineBytes.length) {
         // 줄 번호가 바뀌었거나, 현재 시작 좌표(startX)가 이전 도달 범위(reach)보다 작아지면 누적 리셋!
@@ -160,13 +136,11 @@ window.record = rawRecords; // 디버그용
       }
     });
 
-    // 틱 수로 정렬
     // 틱 수 순서대로 정렬
     // 🎯 [완치 포인트 2]: 고속 랩 구간 명령어 유실 방지를 위해 기존의 임의 중복 제거(filter) 로직 전면 폐기
-    // 시간 순 정렬
     // 타임라인 시간 축 정렬
     this.lyrics.sort((a, b) => a.tick - b.tick);
-//window.script = this.lyrics;	
+//window.script = this.lyrics;
     return this.lyrics;
   }
 
@@ -186,20 +160,6 @@ window.record = rawRecords; // 디버그용
    * null 차단 방식을 걷어내고 현재 틱에 매핑되는 자막 정보를 무정지 리포트하여 
    * 일시정지 해제나 뒤로가기/앞으로가기(Seek) 시에도 싱크가 실시간 칼같이 맞도록 설계
    * 실시간 동적 자막 서칭 및 렌더링에 적합한 데이터 구조 스냅샷 리포트
-   * 🎯 [실시간 정밀 선형 보간 자막 서칭 엔진]
-   * 뭉터기로 끊겨서 진행되는 자막 효과를 프레임 단위로 부드럽게 흐르도록 보간 연산 수행
-   * 🎯 [실시간 프레임 선형 보간 자막 검색 엔진]
-   * 순정 시간축 위에서 가사 조각 사이사이를 부드럽게 실시간 계산하여 흐르게 함
-   * 🎯 [순정 틱 실시간 선형 보간 검색 엔진]
-   * 뭉터기 현상을 방지하기 위해 순수 틱 사이사이를 글자수 비율에 맞춰 프레임 단위로 실시간 보간
-   * 🎯 [정밀 선형 보간 엔진 교정]
-   * 🎯 [절대 좌표 프레임 선형 보간 자막 검색 엔진]
-   * 순정 시간축 위에서 가사 하이라이트가 프레임 단위로 밀리거나 끊김 없이 부드럽게 연산되도록 가동
-   * 🎯 [글자 개수 기반 실시간 선형 보간 검색 엔진]
-   * 바이트 오프셋 왜곡을 원천 차단하고 오직 정밀 계산된 글자 수를 프레임 단위로 밀어 자막 와이프 구현
-   * 🎯 [글자 개수 기반 실시간 선형 보간 검색 엔진 - 후행 공백 유실 완치판]
-   * 🎯 [절대 글자 수 스케일 선형 보간 검색 엔진]
-   * 🎯 [유동적 부분 하이라이트 선형 보간 검색 엔진]
    * 🎯 [실시간 바이트 슬라이싱 보간 검색 엔진]
    * 자바스크립트의 문자열 길이 한계를 우회하고 파일 오리지널 바이트 스케일 위에서 직접 자막 연산
    * 🎯 [한글 깨짐 가드 + 실시간 바이트 결합 추적 검색 엔진]
@@ -231,12 +191,7 @@ window.record = rawRecords; // 디버그용
     // 🎯 [완치 포인트 2]: 현재 틱에 활성화되어 켜져야 하는 누적 바이트 구간 정보 수령
     let activeRuns = currentLyric.runs;
 
-    // 마지막 가사 레코드이거나, 다음 레코드와 줄(line) 번호가 다르다면 보간을 하지 않고 최종 상태 유지
-    // 마지막 가사이거나 다음 가사와 다른 줄이라면 최종 상태 고정 노출
-    // 마지막 자막 프레임이거나 다음 자막과 줄(Line) 번호가 바뀌는 구간이면 보간 없이 고정 출력
-    // 마지막 프레임이거나 다음 자막으로 줄바꿈이 일어나는 순간이면 최종 상태 고정
-    // 마지막 프레임이 아니며 줄바꿈이 없는 경우 실시간 바이트 보간 연산 개시
-    // 실시간 선형 보간 처리 (다음 명령어와 같은 줄일 때만 인터벌 매핑)
+    // 실시간 선형 보간 처리 (다음 명령어와 같은 줄(Line)일 때만 인터벌 매핑)
     if (activeIndex < this.lyrics.length - 1 && currentLyric.line === this.lyrics[activeIndex + 1].line) {
       // 2. 부드러운 진행을 위한 다음 레코드 역산
       const nextLyric = this.lyrics[activeIndex + 1];
@@ -260,14 +215,7 @@ window.record = rawRecords; // 디버그용
             const currentEnd = activeRuns[lastIdx][1];
             const nextEnd = nextLyric.runs[nextLastIdx][1];
             
-            // 3. 🎯 [선형 보간 공식 가동] 
-            // 현재 레코드의 하이라이트 끝 지점과 다음 레코드의 하이라이트 끝 지점 사이를 실시간 비율로 채움
-            // 하이라이트 글자수 위치 실시간 보간
-            // 절대 좌표 기준 실시간 글자수 위치 선형 보간
-            // 글자 수 스케일 위에서 부드럽게 실시간 선형 보간 수행
-            // 🎯 [완치 포인트 2]: 시작 지점(start)과 끝 지점(end)을 각각 독립적으로 선형 보간 연산 수행
-            // 이를 통해 하이라이트가 항상 왼쪽(0)부터가 아니라, 실제 중간 단어 위치에서 유동적으로 출발하고 이동하게 됩니다.
-            // 실시간 연장된 끝 바이트 오프셋 계산
+            // 3. 🎯 실시간 연장된 끝 바이트 오프셋 계산
             const interpolatedEnd = currentEnd + (nextEnd - currentEnd) * progressRatio;
             activeRuns = activeRuns.map((r, idx) => idx === lastIdx ? [r[0], Math.round(interpolatedEnd)] : r);
           }
@@ -311,7 +259,7 @@ window.record = rawRecords; // 디버그용
   // 재설정
   reset() {
     this.lineBytes = []; // 가사배열
-	this.scripts = []; // 가사라인
+	this.scripts = []; // 가사라인(전체가사 출력용)
     this.currentIndex = -1; // 가사 배열 위치
     this.is_ims_loaded = false; // ims 적재 여부
     this.is_bnk_loaded = false; // bnk 적재 여부
@@ -322,23 +270,23 @@ window.record = rawRecords; // 디버그용
     const u8Array = new Uint8Array(arrayBuffer);
     const dataView = new DataView(arrayBuffer);
 	let header = {
-			 majorVersion : 0  //  1, 'int8'   1    주 버전 번호(일반적으로 1)
-			,minorVersion : 0  //  1, 'int8'   2    부 버전 번호(일반적으로 0)
-			,tuneld       : 0  //  4, 'int32'  6    노래 식별 번호
-			,tuneName     : "" // 30          36    노래 제목, null 종료
-			,tickBeat     : 0  //  1, 'int8'  37    비트당 틱 수
-			,beatMeasure  : 0  //  1, 'int8'  38    소절당 비트수
-			,totalTick    : 0  //  4, 'int32' 42    노래의 길이(틱)
-			,dataSize     : 0  //  4, 'int32' 46    MIDI 데이터 블록의 길이(바이트)
-			,nrCommand    : 0  //  4, 'int32' 50    MIDI 이벤트 수 (0xFC:종료 포함)
-			,srctickBeat  : 0  //  1, 'int8'  51    0 (이외 값은 발견하지 못함.)
-			,filler       : 0  //  7          58    패딩, 0으로 설정
+		 majorVersion : 0  //  1, 'int8'   1    주 버전 번호(일반적으로 1)
+		,minorVersion : 0  //  1, 'int8'   2    부 버전 번호(일반적으로 0)
+		,tuneld       : 0  //  4, 'int32'  6    노래 식별 번호
+		,tuneName     : "" // 30          36    노래 제목, null 종료
+		,tickBeat     : 0  //  1, 'int8'  37    비트당 틱 수
+		,beatMeasure  : 0  //  1, 'int8'  38    소절당 비트수
+		,totalTick    : 0  //  4, 'int32' 42    노래의 길이(틱)
+		,dataSize     : 0  //  4, 'int32' 46    MIDI 데이터 블록의 길이(바이트)
+		,nrCommand    : 0  //  4, 'int32' 50    MIDI 이벤트 수 (0xFC:종료 포함)
+		,srctickBeat  : 0  //  1, 'int8'  51    0 (이외 값은 발견하지 못함.)
+		,filler       : 0  //  7          58    패딩, 0으로 설정
 
-			,soundMode    : 0  //  1, 'int8'  59   OPL 리듬 모드: 0=멜로딕(꺼짐), 1=타악기(켜짐)
-			,pitchBRange  : 0  //  1, 'int8'  60    피치벤드 범위(1-12)
+		,soundMode    : 0  //  1, 'int8'  59   OPL 리듬 모드: 0=멜로딕(꺼짐), 1=타악기(켜짐)
+		,pitchBRange  : 0  //  1, 'int8'  60    피치벤드 범위(1-12)
 
-			,basicTempo   : 0  //  2, 'int16' 62    노래 템포, 분당 비트 수.
-			,filler2      : 0  //  8          70    패딩, 0으로 설정
+		,basicTempo   : 0  //  2, 'int16' 62    노래 템포, 분당 비트 수.
+		,filler2      : 0  //  8          70    패딩, 0으로 설정
 	}
 	let instrument = {
 		count  : 0,   // 악기수
@@ -361,13 +309,14 @@ window.record = rawRecords; // 디버그용
 	header.pitchBRange  = dataView.getUint8 (59      ) // 60    피치벤드 범위(1-12)
 	header.basicTempo   = dataView.getUint16(60, true) // 62    노래 템포, 분당 비트 수.
 	
+	// 악기명 추출
 	instrument.count = dataView.getUint16(header.dataSize + 72, true) // 72 : header + 'ww'
     const inst_name_size = 9;
     for(let i=0; i<instrument.count; i++){
       const offset = header.dataSize + 74 + inst_name_size*i; // 74 : header(70) + ww(2) + Uint16(2)
       instrument.names.push( this.get_string(u8Array,offset,inst_name_size) );
     }
-    this.ims = { header:header, instrument:instrument};
+    this.ims = {header:header, instrument:instrument}; // ims header,악기목록 
     this.is_ims_loaded = true;
 
 	this.mapping(); //악기매핑수

@@ -25,16 +25,11 @@ window.addEventListener('resize', () => {
   console.log(`현재 뷰포트 가로폭: ${currentWidth}px`);
 });
 */
+
 // 테이블 동적 출력 메인 로직
 function listPut(page){
 	current_page = page;
-    var searchInput = document.getElementById('search');
-    var filterWord = searchInput ? searchInput.value.toUpperCase() : '';
-
-    var list = songs.filter((el) => {
-        var matchWord = el.title.replace(/[ ]/g,'').toUpperCase().indexOf(filterWord) > -1;
-        return isIss ? matchWord : (matchWord && el.isssize);
-    });
+	let list = getList(); // 검색어, iss 여부 등 필터링 된 리스트 추출
 
     if(sort.key !== 'none'){
         var a = sort[sort.key] ? 1 : -1;
@@ -150,17 +145,15 @@ function toggleIssCheckbox() {
 	randomPage();
 }
 
-function init(){
-	songs = getLocalDB();
-	if(songs.length)
-		randomPage();
-	else
-		fetchAllData(); // ocplay 곡리스트 파일들 파싱 후 곡리스트 출력
+function init(){ // 곡목록 초기화
+	songs = getLocalDB(); // 웹DB에서 추출
+	if(songs.length) randomPage();
+	else             fetchAllData(); // ocplay 곡리스트 파일들 파싱 후 곡리스트 출력
 }
 
 // 원본 이벤트 바인딩 규격 상속 및 기기 감별 후 첫 실행
 window.addEventListener("load", async ()=> {
-	init();
+	init(); // 곡목록 추출
 
 	search.onkeydown = (ev)=>{
 		if(ev.key == 'Enter') listPut(1); // 검색어 입력창에 Enter 이면 목록출력
@@ -176,41 +169,33 @@ window.addEventListener("load", async ()=> {
 });
 
 /* 원본 인터페이스 액션 함수 브릿지 정의 */
-function viewIss(idx) {
-	//console.log("viewIss:", songs[idx]); 
+function getUrl(idx, ext='.IMS'){ // GET 방식 전달용 url 조합
 	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
-			+ escape(songs[idx].filename)+'.ISS';
-	//console.log(url);
-	location.href = './etc/lyric.html?url='+encodeURIComponent(url)+'&p=1';
+			+ escape(songs[idx].filename)+ext;
+	return encodeURIComponent(url);
 }
-function viewIms(idx) {
-	//console.log("viewIms:", songs[idx]); 
-	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
-			+ escape(songs[idx].filename)+'.IMS';
-	//console.log(url);
-	location.href = './etc/ims.html?url='+encodeURIComponent(url)+'&p=1';
+function viewIss(idx) { // iss 파일 내용 보기
+	location.href = './etc/lyric.html?url='+getUrl(idx, '.ISS')+'&p=1';
+}
+function viewIms(idx) { // ims 파일 내용 보기
+	location.href = './etc/ims.html?url='+getUrl(idx)+'&p=1';
 }
 function ocplay(idx) { console.log("ocplay:", songs[idx]); }
-//function adplug(idx) { console.log("adplug:", songs[idx]); }
 function hts(idx) { console.log("hts:", songs[idx]); }
 
 // adplug 모듈로 연주
+// 페이지 전환시 애플계열에서 자동재생이 안되는 문제있음
+// iFrame 내부 제어로 전면 개편함.
 function adplug(idx){
-	//console.log(idx,songs[idx])
-	//var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
-	//		+ escape(songs[idx].filename)+'.IMS';
-	//console.log(url);
-	//location.href = './adplug/?ims='+encodeURIComponent(url)+'&p=1';
-	//myIframe.src = './adplug/?ims='+encodeURIComponent(url)+'&i=1';
-	
 	// iframe 으로 처리
-//	myIframe.contentWindow.document.getElementById('allLyricsView').innerHTML = '';
 	myIframe.contentWindow.extPlay(getSongFile(idx)); // iframe 함수 호출
 	openFullscreen(); // 숨긴 div(iframe 포함된) 보이기
 }
+window.adp = myIframe.contentWindow; // 디버그용
 
 // 노래목록에서 full 경로 구하기 (도스경로->서버경로)
 function getSongFile(idx, ext='.IMS'){
+	if(songs[idx].imsattr & 0x80) ext='';
 	var url = '../dos/C_Drv'
 	        + songs[idx].path.replace(/\\/g,'/')
 		                     //.replace(/&/g,'%26')
@@ -222,7 +207,13 @@ function getSongFile(idx, ext='.IMS'){
 // 화면회전등 사이즈가 변경되면 처리
 window.addEventListener('resize', () => {
   isMobile = window.innerWidth<600; // 가로폭이 600px 미만이면 모바일 처리
+  
+  if(navigator.platform == 'Win32') page_num = isMobile?9:15;
+//  if(navigator.platform == 'iPhone'){ page_num = 6; show_page_num=5;}  // iPhoneX
+//  if(navigator.platform == 'Linux armv81') page_num = 20; // ALLDOCUBE iPlay40
+  
   //randomPage();
+  
   listPut( current_page );
 });
 

@@ -1,12 +1,7 @@
 // AdPlugLyricParser.js (Part 1/2)
 /**
  * AdPlug .ISS 노래방 가사 자막 IMPlay 오리지널 바이너리 명세 정밀 파서 (가사 싱크 및 실시간 하이라이트 완치 버전)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (인위적 8배수 연산 전면 제거)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (클리어 타겟 및 싱크 완치 패치판)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (순정 타임라인 및 프레임 정밀 매핑 버전)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (오리지널 공백 및 고정폭 보존판)
  * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (조합형 특수문자 인덱스 붕괴 완치판)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (인위적 스타일 배제 및 부분 하이라이트 완치판)
  * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (마지막 줄 버퍼 크기 RangeError 완치판)
  * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (바이트 다이렉트 슬라이싱 버전)
  * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (한글 경계 가드 및 조건부 누적 엔진판)
@@ -17,7 +12,7 @@ export class AdPlugLyricParser {
     this.lyrics = []; // { tick: number, line: number, runs: [][] } 실시간 타임라인 매핑 보관함
     this.currentIndex = -1;
     this.lineBytes = []; // 바이트 단위 정밀 역산을 위한 버퍼 리스트
-	this.scripts = []; // 전체 가사 버퍼
+	this.scripts   = []; // 전체 가사 버퍼
   }
   
   ims = {header:null,instrument:null};
@@ -27,7 +22,7 @@ export class AdPlugLyricParser {
 
   // iss 파싱 (바이트 기반 하이라이트 인터벌 사전 실시간 추출 구조화)
   parse(arrayBuffer) {
-    //this.lyrics = [];
+    this.lyrics = [];
     this.currentIndex = -1;
     this.lineBytes = [];
 
@@ -49,15 +44,13 @@ export class AdPlugLyricParser {
 console.log(this.meta);
 
 	// 제어 레코드 수
-    const recCount = u8Array[offset] | (u8Array[offset + 1] << 8);
-    offset += 2;
+    const recCount  = u8Array[offset] | (u8Array[offset + 1] << 8);    offset += 2;
 	// 가사 라인 수
-    const lineCount = u8Array[offset] | (u8Array[offset + 1] << 8);
-    offset += 2;
+    const lineCount = u8Array[offset] | (u8Array[offset + 1] << 8);    offset += 2;
 
     // 1. 🎯 제어 레코드(큐) 추출 및 시간 동기화 규격 교정
     const rawRecords = [];
-    let due = 0;
+    let due = 0; // 틱 버퍼 (보정된 값 저장)
     for (let i = 0; i < recCount; i++) {
       const stored = u8Array[offset] | (u8Array[offset + 1] << 8); // 틱값
       const line   = u8Array[offset + 2]; // 가사라인
@@ -71,15 +64,12 @@ console.log(this.meta);
       //due = Math.max(due, stored); // 시간이 거꾸로 흐르지 않게 상한 가드만 유지
 
       rawRecords.push({ tick: due, line, startX, widthX });
-      offset += 5;
+      offset += 5; // 제어 레코드 길이
     }
 window.record = rawRecords; // 디버그용
 
 	// 가사 라인 추출
-    // 2. 가사 라인 디코딩 처리
-    // 2. 가사 라인 원본 버퍼 보존 (트리밍 및 정규식 전면 제거)
     // 🎯 [순정 고정폭 버퍼 복원]: trim()이나 replace()를 전면 차단하여 연속된 내부 공백 레이아웃을 완벽 보존합니다.
-    // 2. 🎯 [완치 포인트]: 64바이트 고정 슬라이싱 범위 초과 에러 차단 방어선
     // 2. 🎯 가사 라인 오리지널 바이트 버퍼 통째로 보존
     for (let i = 0; i < lineCount; i++) {
       // 파일이 급격히 끝났을 때를 대비하여 남은 데이터의 최대 한계 오프셋을 안전하게 역산
@@ -98,9 +88,8 @@ window.record = rawRecords; // 디버그용
     }
 
     // 3. IMPlay 오리지널 자막 지우기(Wipe) 구간 연산 엔진 적용
-//    this.lyricSpans = this._resolveIssSpans(rawRecords, this.lineBytes);
-
-
+	// DOS 처럼 구현되지 않아 폐기함
+    //this.lyricSpans = this._resolveIssSpans(rawRecords, this.lineBytes);
 
     // 🎯 [완치 포인트 1]: 이전 좌표 조건부 누적 연산 매커니즘 가동
     let currentLine = -1;
@@ -127,7 +116,6 @@ window.record = rawRecords; // 디버그용
 
         // 🎯 AdPlugPlayer 코어 틱과 1:1 매칭
         this.lyrics.push({
-//          tick: rec.tick, // 🎯 순정 클록 틱 바인딩
           tick: rec.tick, // 🎯 순수한 바이너리 원본 틱 바인딩
           line: rec.line,
           // 각 시점마다 독립적으로 누적 보존된 바이트 맵 조각 리스트 복사
@@ -144,13 +132,32 @@ window.record = rawRecords; // 디버그용
     return this.lyrics;
   }
 
+  // 기존의 구간(구간 배열, runs)에 새로운 구간(from, to)을 겹치지 않게 병합(Merge)하여 추가
+  // 만약 기존에 [[10, 20], [30, 40]]이라는 두 구간(runs)이 있다고 가정해 봅시다.
+  // 여기에 새로운 구간 _addRun(runs, 15, 35)를 추가하면 어떻게 될까요?
+  // • [10, 20]은 [15, 35]와 겹칩니다. \(\rightarrow \) [10, 35]로 합쳐집니다.
+  // • [30, 40]도 [10, 35]와 겹칩니다. \(\rightarrow \) 최종적으로 [10, 40]이 됩니다.
+  // • 결과는 겹치는 부분이 모두 사라진 [[10, 40]]이 됩니다.
   _addRun(runs, from, to) {
-    const merged = [];
+    const merged = []; // 1. 결과를 담을 빈 배열을 생성합니다.
+    // 2. 기존에 있던 구간들([a, b])을 하나씩 순회(Loop)합니다.
     for (const [a, b] of runs) {
-      if (b < from || a > to) merged.push([a, b]);
-      else { from = Math.min(from, a); to = Math.max(to, b); }
+      // 3. 기존 구간과 새 구간이 '전혀 겹치지 않는' 경우입니다.
+      // b < from : 기존 구간의 끝(b)이 새 구간의 시작(from)보다 먼저 끝남
+      // a > to   : 기존 구간의 시작(a)이 새 구간의 끝(to)보다 뒤에 시작함
+      if (b < from || a > to) merged.push([a, b]); // 겹치지 않으므로 기존 구간을 그대로 결과에 넣습니다.
+      // 4. 기존 구간과 새 구간이 '일부라도 겹치는' 경우입니다.
+      else {
+        // 두 구간을 아우르는 가장 최소 시작점과 가장 최대 끝점을 구합니다.
+        // 이를 통해 새 구간(from, to)의 범위가 점점 확장됩니다.
+        from = Math.min(from, a); to = Math.max(to, b);
+      }
     }
+    // 5. 루프가 끝나면, 최종적으로 확장된(혹은 겹치는 게 없어서 그대로인) 
+    // 새 구간 [from, to]를 결과 배열에 추가합니다.
     merged.push([from, to]);
+    // 6. 모든 구간이 잘 합쳐졌지만 순서가 뒤죽박죽일 수 있으므로,
+    // 각 구간의 시작점(x[0], y[0])을 기준으로 오름차순 정렬하여 반환합니다.
     return merged.sort((x, y) => x[0] - y[0]);
   }
 // AdPlugLyricParser.js (Part 2/2)
@@ -178,15 +185,22 @@ window.record = rawRecords; // 디버그용
       }
     }
 
-    this.currentIndex = activeIndex;
-
     // 가사가 아직 시작되지 않은 초반 대기 상태
     if (activeIndex < 0) {
       return { line: 0, textRuns: [{ text: "                          🎵 (간주 중)", lit: false }] };
     }
 
+    this.currentIndex = activeIndex;
+
     const currentLyric = this.lyrics[activeIndex];
     const rawBytes = this.lineBytes[currentLyric.line] ?? new Uint8Array(0);
+
+	// 가사가 빈 라인일때
+	/*
+    if (this.scripts[currentLyric.line].trim()=='') {
+      return { line: 0, textRuns: [{ text: "                          🎵 (간주 중)", lit: false }] };
+    }
+	*/
 
     // 🎯 [완치 포인트 2]: 현재 틱에 활성화되어 켜져야 하는 누적 바이트 구간 정보 수령
     let activeRuns = currentLyric.runs;
@@ -248,7 +262,7 @@ window.record = rawRecords; // 디버그용
       }
     }
 
-	this.currentIndex = currentLyric.line; // 전체가사 창 매핑용
+    this.currentIndex = currentLyric.line; // 전체가사 창 매핑용, activeIndex 와 다른값
 
     return {
       line: currentLyric.line,
@@ -371,11 +385,11 @@ window.record = rawRecords; // 디버그용
         }; bnkTimbres.push(timbre); timbrePos += 30;
     }
 	*/
-	
+
     this.bnk.header = bnkHeader;
     this.bnk.names = bnkInsNames;
     this.is_bnk_loaded = true;
-	this.mapping(); //악기매핑수
+    this.mapping(); //악기매핑수
     return this.bnk;
   }
   

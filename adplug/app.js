@@ -300,11 +300,12 @@ function startInterfaceLoop() {
       const activeRow = document.getElementById(`lyric-line-${activeIdx}`);
       if (activeRow) {
         activeRow.classList.add('active-line');
-        activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        //activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
 
     }
-  }, 100); 
+  }, 60); 
 }
 
 // 연주 종료시 화면 처리
@@ -466,13 +467,13 @@ document.getElementById('lyricsBtn').addEventListener('click', () => {
 const secondSpan = document.querySelector('.title-bar span:nth-of-type(2)');
 secondSpan.addEventListener('click', () => {
 	stopInterface(); // 재생정지
-	player.parser.reset();  // 가사상태 초기화
 
 	if(params.get('p'))	history.go(-1); // 이전 페이지로
 	if(params.get('i')) closeParent();  // 전체화면 (iframe) 닫기
 });
 
 function closeParent() {
+	player.parser.reset();  // 가사상태 초기화
     // 부모 창(window.parent)의 closeFullscreen 함수를 실행합니다.
     if (window.parent && typeof window.parent.closeFullscreen === 'function') {
         window.parent.closeFullscreen();
@@ -604,7 +605,7 @@ document.addEventListener('visibilitychange', () => {
 
 /**
  * 3. 화면이 꺼져도 오디오를 계속 유지하고 싶다면 (HTML5 오디오 믹싱)
- */
+ * /
 // 1. 아주 짧은 묵음(Silent) 오디오 파일이나 Data URI를 생성
 const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
 silentAudio.loop = true;
@@ -622,3 +623,5 @@ document.addEventListener('visibilitychange', () => {
     player.audioContext.resume();
   }
 });
+*/
+//alert(2)

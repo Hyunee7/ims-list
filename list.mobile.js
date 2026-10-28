@@ -180,8 +180,26 @@ function viewIss(idx) { // iss 파일 내용 보기
 function viewIms(idx) { // ims 파일 내용 보기
 	location.href = './etc/ims.html?url='+getUrl(idx)+'&p=1';
 }
-function ocplay(idx) { console.log("ocplay:", songs[idx]); }
+//function ocplay(idx) { console.log("ocplay:", songs[idx]); }
 function hts(idx) { console.log("hts:", songs[idx]); }
+    function ocplay(idx){
+//        console.log(songs[idx])
+        var url = 'ocplay.php?path=dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
+                + '&file=' + escape(songs[idx].filename);
+//        var url = 'ocplay.php?d=1234567890';
+//        console.log(url);
+        /**/
+        fetch(url)
+            .then(res => {
+                console.log(res);
+                if(res.status === 200) return res.text();
+                //location.href='jsdos.html'
+            }).then(text =>{
+                console.log(text);
+                location.href=`jsdos.html?no=${text}`
+            })
+        /**/
+    }
 
 // adplug 모듈로 연주
 // 페이지 전환시 애플계열에서 자동재생이 안되는 문제있음

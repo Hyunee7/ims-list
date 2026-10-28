@@ -244,6 +244,7 @@ function formatTime(seconds) {
 // app.js (Part 2/2)
 
 // 연주중 처리 루프
+// app.js 파일 내 startInterfaceLoop 루프 내부의 가사 틱 검출 수식을 아래와 같이 교정합니다.
 function startInterfaceLoop() {
   if (uiTimerId !== null) clearInterval(uiTimerId);
 
@@ -251,13 +252,15 @@ function startInterfaceLoop() {
     // 🎯 오디오 프로세서가 노래가 끝났다고 신호를 보내면 즉시 인터페이스 연주 종료 처리 단행
     if (player.queue.isFinished) {
       stopInterface(); 
-	  if(isPopup) history.go(-1); // 이전 페이지 복귀
-	  if(params.get('i')) closeParent();  // 전체화면 (iframe) 닫기
+      if(isPopup) history.go(-1); // 이전 페이지 복귀
+      if(params.get('i')) closeParent();  // 전체화면 (iframe) 닫기
       return;
     }
     if (!player.isPlaying || player.isPaused) return; // 일시정지
 
+    // 🎯 [배속 맞춤형 진행 시간 보정]: 시간 텍스트와 프로그레스 바가 배속 속도에 동기화되도록 처리
     const timeInfo = player.getPlaybackTime();
+    // 만약 고유 시간 함수가 배속을 인식하지 못한다면 인터페이스 갱신용 가상 보정 로직을 추가 결합할 수 있습니다.
     document.getElementById('timeText').innerText = `${formatTime(timeInfo.current)} / ${formatTime(timeInfo.total)}`;
     
     if (!isUserDraggingSlider && timeInfo.total > 0) {
@@ -266,13 +269,19 @@ function startInterfaceLoop() {
       progressBar.value = timeInfo.current;
     }
 
-    // 1. 코어 클락에서 순정 가사 보정 처리가 완비된 진짜 틱 수령
-    const currentEmuTick = player.getCurrentEmuTick()-8;
+    // 🎯 [가사 싱크 완전 복원 보정 메커니즘]:
+    // 현재 작동 중인 재생 큐 엔진의 실제 배속 배율(player.queue.playbackSpeed)을 구합니다.
+    const currentSpeed = player.queue.playbackSpeed || 1.0;
+    
+    // 1. 코어 클락에서 순정 가사 보정 처리가 완비된 진짜 틱 수령 후 실시간 배속 인자 동사 결합!
+    //const currentEmuTick = (player.getCurrentEmuTick() - 8) * currentSpeed;
+    const currentEmuTick = player.getCurrentEmuTick() - 8; // 보정하지 않아야 함.
 
-    // 2. 가사 파서 업데이트 (현재 시각에 딱 매칭되는 한글 텍스트 추출)
+    // 2. 가사 파서 업데이트 (현재 속도에 딱 매칭되는 한글 텍스트 정밀 추출)
     const lyricSnapshot = player.parser.update(currentEmuTick);
 
     // 3. 🎯 [완치된 경계 가드형 누적 조각 자막 렌더러]
+    // 3. 누적 조각 자막 렌더러 가동
     if (lyricSnapshot !== null) {
       const { textRuns } = lyricSnapshot;
       const box = document.getElementById('lyricBox');
@@ -300,15 +309,15 @@ function startInterfaceLoop() {
       const activeRow = document.getElementById(`lyric-line-${activeIdx}`);
       if (activeRow) {
         activeRow.classList.add('active-line');
-        //activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        //activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); // 현위치에 가까이 배치
+        activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); // 세로 중앙 배치
       }
-
     }
-  }, 60); 
+  }, 100); 
 }
 
 // 연주 종료시 화면 처리
+// 🎯 기존 stopInterface() 함수 내부 초기화 구문에 아래 코드를 추가 결합해 주세요!
 function stopInterface() {
   player.stop();          // 재생중지
   // 🎯 큐 엔진에 잠겨있던 종료 플래그를 완전히 잠금 해제(false)합니다.
@@ -318,6 +327,19 @@ function stopInterface() {
   if (uiTimerId !== null) { // 연주 루프 정지
     clearInterval(uiTimerId);
     uiTimerId = null;
+  }
+  
+  // 🎯 [배속 슬라이더 코어 리셋]: 곡이 끝나거나 정지 버튼을 누르면 배속 슬라이더와 수치도 1.0 순정으로 안전 강제 복귀
+  if (speedSlider && speedTxt) {
+    speedSlider.value = "1.0";
+    speedTxt.innerText = "1.0x";
+    player.speed(1.0); // 엔진 속도도 기본값으로 안전 리셋
+  }
+
+  // 정지 시 음정 시스템도 원음으로 안전 리셋
+  if (pitchTxt) {
+    player.currentSemitone = 0;
+    updatePitchUI();
   }
 
   //글자크기 조절되게(css 영향받게) 수정
@@ -397,35 +419,88 @@ document.getElementById('btnStop').addEventListener('click', () => {
   stopInterface();
 });
 
+
+
 // 배속처리
-/*
-let isSpeed=false;
-document.getElementById('btnSpeed').addEventListener('click', () => {
-	if(isSpeed){
-	  player.speed(1.0);
-	  isSpeed=false;
-	}else{
-	  console.log('player',player)
-	  player.speed(1.5);
-	  isSpeed=true;
-	}
-});
-*/
-let isSpeed=-1;
-document.getElementById('btnSpeed').addEventListener('click', () => {
-	isSpeed = ++isSpeed%4;
-	let speed = 1.0;
-	if(     isSpeed==0) speed=0.5;
-	else if(isSpeed==1) speed=1.0;
-	else if(isSpeed==2) speed=1.5;
-	else if(isSpeed==3) speed=2.0;
-	speedTxt.innerText = `빨리감기(${speed})`;
-	player.speed(speed);
-});
 // UI 슬라이더 등과 연동
 //document.getElementById('pitchSlider').addEventListener('input', (e) => {
 //  setPlaybackPitch(parseFloat(e.target.value));
 //});
+// =================================================================
+// 🎯 [완치본]: 0.5 ~ 3.0 배속 자석형 정밀 슬라이더 제어 레이어 도킹
+// =================================================================
+const speedSlider = document.getElementById('speedSlider');
+const speedTxt = document.getElementById('speedTxt');
+
+if (speedSlider && speedTxt) {
+  // 사용자가 슬라이더 바를 조작할 때 실시간으로 자석식 버퍼 수급 개시
+  speedSlider.addEventListener('input', (e) => {
+    const targetSpeed = parseFloat(e.target.value);
+    
+    // 1. 시각화 화면 문구 즉시 업데이트 (예: 1.0x, 2.5x)
+    speedTxt.innerText = `${targetSpeed.toFixed(1)}x`;
+    
+    // 2. 유튜브급 하드웨어 배속 엔진(SourceNode)에 실시간 속도 가속 주입
+    if (window.AdPlugPlayer) {
+      player.speed(targetSpeed);
+    }
+  });
+}
+
+
+
+// 피치조정
+// =================================================================
+// 🎯 [완치본]: 노래방 전용 반음 단위 음정(Key) 제어 레이어 시스템
+// =================================================================
+const btnPitchUp = document.getElementById('btnPitchUp');
+const btnPitchDown = document.getElementById('btnPitchDown');
+const btnPitchReset = document.getElementById('btnPitchReset');
+const pitchTxt = document.getElementById('pitchTxt');
+
+function updatePitchUI() {
+  const currentKey = player.currentSemitone;
+  if (currentKey === 0) {
+    pitchTxt.innerText = "원음";
+    pitchTxt.style.color = "#0000ff"; // 기본 블랙/블루
+  } else if (currentKey > 0) {
+    pitchTxt.innerText = `+${currentKey}`;
+    pitchTxt.style.color = "#ff0055"; // 높은 음은 레드 계열
+  } else {
+    pitchTxt.innerText = `${currentKey}`;
+    pitchTxt.style.color = "#00ff44"; // 낮은 음은 그린 계열
+  }
+}
+
+// ♯ 버튼 클릭 (반음 올림, 최대 +6키 제한)
+btnPitchUp?.addEventListener('click', () => {
+  if (player.currentSemitone < 6) {
+    const nextKey = player.currentSemitone + 1;
+    const currentSpeed = player.queue.playbackSpeed || 1.0;
+    player.setPitchAndSpeed(nextKey, currentSpeed);
+    updatePitchUI();
+  }
+});
+
+// ♭ 버튼 클릭 (반음 내림, 최소 -6키 제한)
+btnPitchDown?.addEventListener('click', () => {
+  if (player.currentSemitone > -6) {
+    const nextKey = player.currentSemitone - 1;
+    const currentSpeed = player.queue.playbackSpeed || 1.0;
+    player.setPitchAndSpeed(nextKey, currentSpeed);
+    updatePitchUI();
+  }
+});
+
+// 초기화 버튼 클릭
+btnPitchReset?.addEventListener('click', () => {
+  const currentSpeed = player.queue.playbackSpeed || 1.0;
+  player.setPitchAndSpeed(0, currentSpeed);
+  updatePitchUI();
+});
+
+
+
 
 // 진행바
 const progressBar = document.getElementById('progressBar');

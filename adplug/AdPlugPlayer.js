@@ -8,6 +8,7 @@ import { AdPlugQueue       } from './AdPlugQueue.js';  // 오디오 큐 모듈
 import { AdPlugLyricParser } from './AdPlugLyricParser.js'; // 파싱(가사) 모듈
 
 export class AdPlugPlayer {
+// AdPlugPlayer.js의 constructor() 내부에 아래 변수를 추가해 주세요.
   constructor() {
     this.module = null;          
     this.isInitialized = false;  
@@ -21,7 +22,7 @@ export class AdPlugPlayer {
     this.gainNode = null;
     this.analyserNode = null; 
     // 🎯 [볼륨 완치]: 초기 소리 크기를 0.5(50%)에서 1.0(100%) 순정 값으로 상향 세팅
-    this.currentVolume = 0.7;   
+    this.currentVolume = 1.0;   
     this.isMuted = false;
 
     this.currentRuntimeTempo = 120;
@@ -29,15 +30,17 @@ export class AdPlugPlayer {
 
     this.memory = new AdPlugMemory(this);
     this.queue  = new AdPlugQueue(this);
-	this.parser = new AdPlugLyricParser(); // 파서모듈
+    this.parser = new AdPlugLyricParser(); // 파서모듈
 
     // 🎯 [로컬 고정선]: 플레이어가 실행되는 호스트 로컬 최상위 폴더의 순정 뱅크 경로 명시
     this.defaultBankPath = './STANDARD.BNK';
-	
+
 	this.ims = {};
 	this.imsName = "";
 	this.issName = "";
 	this.bnkName = "";
+
+    this.currentSemitone = 0; // 🎯 0은 원음, +1은 반음 올림, -1은 반음 내림 상태 저장
   }
 
   // adplug 엔진 로드
@@ -56,6 +59,8 @@ export class AdPlugPlayer {
   }
 
   // 엔진 초기화
+  /* 
+  // audioWorklet 사용할때
   async initEngine(processorPath = './audio-queue-processor.js') {
     if (!this.module) throw new Error("엔진 로드 선행 필요");
     
@@ -73,6 +78,40 @@ export class AdPlugPlayer {
     this.analyserNode.connect(this.audioContext.destination);
 
     await this.audioContext.audioWorklet.addModule(processorPath);
+
+    if (this.isInitialized) {
+      this.module._emu_teardown();
+    }
+    
+    if (this.module._emu_init(this.sampleRate) !== 0) {
+      throw new Error("AdPlug 에뮬레이터 초기화 실패");
+    }
+
+    this.isInitialized = true;
+    this.isBankLoaded = false; 
+    this.queue.chunkPool = [];
+    this.queue.allocated = 0;
+  }
+  */
+  // AdPlugPlayer 클래스 내부의 initEngine 메서드를 아래와 같이 워크렛 없이 간소화 복원합니다.
+  async initEngine(processorPath = '') {
+    if (!this.module) throw new Error("엔진 로드 선행 필요");
+    
+    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    this.sampleRate = this.audioContext.sampleRate;
+
+    this.gainNode = this.audioContext.createGain();
+    this.gainNode.gain.setValueAtTime(this.currentVolume, this.audioContext.currentTime);
+
+    this.analyserNode = this.audioContext.createAnalyser();
+    this.analyserNode.fftSize = 256;
+    this.analyserNode.smoothingTimeConstant = 0.8;
+
+    this.gainNode.connect(this.analyserNode);
+    this.analyserNode.connect(this.audioContext.destination);
+
+    // 🎯 [완치]: 지저분하게 잡음을 만들고 배속 연산 처리가 안 되던 오디오 워크렛 스레드 모듈 호출부를 전면 삭제합니다.
+    // await this.audioContext.audioWorklet.addModule(processorPath);
 
     if (this.isInitialized) {
       this.module._emu_teardown();
@@ -335,5 +374,21 @@ export class AdPlugPlayer {
   // 배속 지정
   speed(speed=1.0){
 	this.queue.speed(speed);
+  }
+
+  // AdPlugPlayer 클래스 내부에 배속과 음정을 동시에 계산하는 매커니즘 메서드 주입
+  setPitchAndSpeed(semitone, speed) {
+    this.currentSemitone = semitone;
+    
+    // 🎯 [음악 물리학 반음 공식]: 1옥타브는 12반음이므로, 반음 n개 이동은 2^(n/12) 배  율을 가집니다.
+    const pitchMultiplier = Math.pow(2, semitone / 12);
+    
+    // 최종 소스노드에 주입할 값 = 음정 배율 * 재생 속도 배율
+    const finalPlaybackRate = pitchMultiplier * speed;
+    
+    // 큐 노드 시스템에 최종 연산된 주파수 주사 속도를 강제 주입
+    if (this.queue) {
+      this.queue.setFinalRate(finalPlaybackRate);
+    }
   }
 }

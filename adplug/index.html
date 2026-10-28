@@ -40,12 +40,31 @@
       <!-- 4. 실시간 사운드 볼륨 제어 및 음소거 단락 판넬 -->
       <div class="volume-control-panel">
         <button id="btnMute" style="width:80px; padding: 4px 10px;">🔊 Mute</button>
-        <span style="font-size: 12px; /*font-weight: bold;*/ color: #000;">VOLUME:</span>
-        <!-- HTML 내 볼륨 슬라이더 태그 설정 양식 -->
-        <!-- 기본값(value)은 1, 최소값(min)은 0, 최대값(max)은 2, 두께 간격(step)은 0.05 단위 추천 -->
-        <input type="range" id="volumeBar" min="0" max="2" step="0.05" value="1">
-        <!-- 🎯 [신규 추가]: 실시간 볼륨 퍼센트 수치 출력 스크린 부착 -->
-        <span id="volumeValue" style="font-family: monospace; font-size: 13px; font-weight: bold; width: 40px; text-align: right;">50%</span>
+        <div style="width: 100%;">
+          <div style="display: flex;">
+            <span style="font-size: 12px; color: #000; min-width: 70px;">📢 VOLUME:</span>
+            <!-- HTML 내 볼륨 슬라이더 태그 설정 양식 -->
+            <!-- 기본값(value)은 1, 최소값(min)은 0, 최대값(max)은 2, 두께 간격(step)은 0.05 단위 추천 -->
+            <input type="range" id="volumeBar" min="0" max="2" step="0.05" value="1">
+            <!-- 🎯 [신규 추가]: 실시간 볼륨 퍼센트 수치 출력 스크린 부착 -->
+            <span id="volumeValue" style="font-family: monospace; font-size: 13px; font-weight: bold; min-width: 40px; text-align: right;">50%</span>
+          </div>
+          
+          <!-- 기존 버튼을 지우고 아래 슬라이더 레이아웃을 투입합니다 -->
+          <div class="speed-control-container" style="display: flex; align-items: center;">
+            <span style="color: var(--text-main, #fff); font-size: 14px; min-width: 70px;">⏩ 배속:</span>
+            <input 
+              type="range" 
+              id="speedSlider" 
+              min="0.5" 
+              max="2.0" 
+              step="0.25" 
+              value="1.0" 
+              style="flex: 1; cursor: pointer;"
+            />
+            <span id="speedTxt" style="min-width: 40px; text-align: right;">1.0x</span>
+          </div>
+        </div>      
       </div>
 
       <!-- 상태 판넬 -->
@@ -56,7 +75,17 @@
         <button id="btnPlay" disabled>▶ 재생 (시작)</button>
         <button id="btnPause" disabled>⏸ 일시정지</button>
         <button id="btnStop" disabled>■ 정지</button>
-        <button id="btnSpeed" >⏩ <span id="speedTxt">빨리감기</span></button>
+        <!-- 음정(Pitch/Key) 조절 반음 레이아웃 추가 - ->
+        <div class="pitch-control-panel" style="display: flex; align-items: center; justify-content: space-between; background: var(--bg-main); border: 2px inset var(--color-white); padding: 6px 12px; margin-bottom: 12px; gap: 10px;">
+          <span style="font-size: 13px; font-weight: bold;">🎹 음정 조절(Key):</span>
+          <div class="pitch-btn-group" style="display: flex; gap: 5px; align-items: center;">
+            <button id="btnPitchDown" style="padding: 4px 10px; font-weight: bold;">▼ ♭</button>
+            <span id="pitchTxt" style="color: #0000ff; font-weight: bold; min-width: 40px; text-align: center; font-size: 14px;">원음</span>
+            <button id="btnPitchUp" style="padding: 4px 10px; font-weight: bold;">▲ ♯</button>
+            <button id="btnPitchReset" style="padding: 4px 8px; font-size: 11px;">초기화</button>
+          </div>
+        </div>
+        <!--  -->
       </div>
 
       <!-- 💡 [신규 추가 단락]: 가사 전체 내용 줄글 스크롤 뷰어 창 -->

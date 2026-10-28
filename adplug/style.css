@@ -122,6 +122,29 @@ body {
   cursor: pointer;
 }
 
+/******** Chrome, Safari, Opera and Edge Chromium styles ********/
+/* slider thumb */
+/*input[type="range"]::-webkit-slider-thumb {*/
+.progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  background-color: #808080;
+  border-radius: 0.5rem;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+/*********** Firefox styles ***********/
+/* slider thumb */
+.progress-slider::-moz-range-thumb {
+  background-color: #808080;
+  border: none; /*Removes extra border that FF applies*/
+  border-radius: 0.5rem;
+  height: 0.5rem;
+  width: 0.5rem;
+}
+
+
+
 .volume-control-panel {
   display: flex;
   align-items: center;
@@ -144,6 +167,7 @@ body {
   color: var(--color-blue);
   text-align: center;
   margin-bottom: 12px;
+  line-height: 13px; /* 일시정지 시 세로폭이 늘어나는 문제 수정 */
 }
 
 .btn-group {
@@ -189,7 +213,8 @@ button:disabled {
   /* clamp(최소폰트크기, 반응형크기, 최대폰트크기) */
   /**/font-size: clamp(9px, 3.1cqi, 18px); /**/
   white-space: pre-wrap; /* 여러 공백 허용 */
-  
+  line-height: 25px; /* 특수문자 세로폭과 글자 세로폭이 달라 층이 생기는 문제 해결 */
+
   /* 다른 방법 (안됨)*/
   /*font-size: max(10px, min(18px, calc(100vw * 16px/variables.$max-content-width)));*/
 }
@@ -234,6 +259,8 @@ button:disabled {
 #volumeBar {
   width:100%;
 }
+
+
 
 #infoAuthor span {
 	color: #46474b;

@@ -140,8 +140,27 @@
 
     let analyticsData = { no:no, file:file, ntmn:ntmn };
 
+    // 안됨
     window.addEventListener("unload", function() {
       navigator.sendBeacon(`${file}.php?no=${ntmn}`, JSON.stringify(analyticsData));
+    });
+
+    // 페이지 이탈시 호출
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') {
+        /*
+        const url = 'https://your-server.com';
+        const data = JSON.stringify({ 
+          userId: '12345', 
+          timestamp: Date.now() 
+        });
+    
+        // 데이터를 Blob 형태로 전송 (Content-Type을 application/json으로 설정)
+        const blob = new Blob([data], { type: 'application/json' });
+        */
+        // 서버로 전송
+        navigator.sendBeacon(`${file}.php?no=${ntmn}`, JSON.stringify(analyticsData));
+      }
     });
 
     function keyboard(key){

@@ -41,6 +41,7 @@ body {
     padding: 2px 0;
     margin-bottom: 10px;
     text-transform: uppercase;
+    box-shadow: 6px 6px 20px rgba(0,0,0,0.6);
 }
 
 /* 상태창 영역 대괄호 더블 테두리 */
@@ -49,6 +50,7 @@ body {
     padding: 8px;
     margin-bottom: 10px;
     background-color: #000000;
+    box-shadow: 6px 6px 20px rgba(0,0,0,0.6);
 }
 
 .dos-stats {
@@ -96,6 +98,7 @@ input[type="text"] {
     border: 1px solid var(--dos-gray);
     background-color: #000000;
     margin-bottom: 10px;
+    box-shadow: 6px 6px 20px rgba(0,0,0,0.6);
 }
 
 table {
@@ -221,6 +224,7 @@ input[type="checkbox"]:checked + label::after {
     border: 1px solid var(--dos-gray);
     text-decoration: none;
     background-color: #111111;
+    box-shadow: 6px 6px 20px rgba(0,0,0,0.6);
 }
 
 .page-item.active .page-link {

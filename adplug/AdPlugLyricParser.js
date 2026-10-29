@@ -1,23 +1,19 @@
 // AdPlugLyricParser.js (Part 1/2)
 /**
- * AdPlug .ISS 노래방 가사 자막 IMPlay 오리지널 바이너리 명세 정밀 파서 (가사 싱크 및 실시간 하이라이트 완치 버전)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (조합형 특수문자 인덱스 붕괴 완치판)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (마지막 줄 버퍼 크기 RangeError 완치판)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (바이트 다이렉트 슬라이싱 버전)
- * AdPlug .ISS 가사 싱크 완전치료 버전 파서 (한글 경계 가드 및 조건부 누적 엔진판)
+ * AdPlug .ISS 노래방 가사 자막 IMPlay 오리지널 바이너리 명세 정밀 파서
  */
 export class AdPlugLyricParser {
   constructor() {
     this.meta = { writer: "", composer: "", singer: "", editor: "" };
-    this.lyrics = []; // { tick: number, line: number, runs: [][] } 실시간 타임라인 매핑 보관함
+    this.lyrics = []; // 🎯 [구조 교정]: 이제 단순 바이트 맵이 아니라, 완성된 { tick, line, textRuns } 프리렌더링 데이터가 담깁니다.
     this.currentIndex = -1;
     this.lineBytes = []; // 바이트 단위 정밀 역산을 위한 버퍼 리스트
 	this.scripts   = []; // 전체 가사 버퍼
   }
   
   ims = {header:null,instrument:null};
-  is_ims_loaded = false;
   bnk = {header:null,names:[]};
+  is_ims_loaded = false;
   is_bnk_loaded = false;
 
   // iss 파싱 (바이트 기반 하이라이트 인터벌 사전 실시간 추출 구조화)
@@ -25,6 +21,7 @@ export class AdPlugLyricParser {
     this.lyrics = [];
     this.currentIndex = -1;
     this.lineBytes = [];
+    this.scripts = [];
 
     const u8Array = new Uint8Array(arrayBuffer);
     if (u8Array.length < 154) return []; // 비정상 iss 파일
@@ -82,19 +79,17 @@ window.record = rawRecords; // 디버그용
 
       // 🎯 [핵심]: 문자열로 변환해두지 않고, 순수한 원본 바이너리 바이트 상태 그대로 저장합니다.
       this.lineBytes.push(scriptBytes.slice(0, end));
-	  this.scripts.push(JohabDecoder.decode(arrayBuffer, offset, 64)); // 전체 가사 출력용.
-		  
+      this.scripts.push(JohabDecoder.decode(arrayBuffer, offset, 64)); // 전체 가사 출력용.
+  
       offset += 64;
     }
 
-    // 3. IMPlay 오리지널 자막 지우기(Wipe) 구간 연산 엔진 적용
-	// DOS 처럼 구현되지 않아 폐기함
-    //this.lyricSpans = this._resolveIssSpans(rawRecords, this.lineBytes);
-
     // 🎯 [완치 포인트 1]: 이전 좌표 조건부 누적 연산 매커니즘 가동
+    // [바이트 구간 누적 처리용 임시 저장소]
     let currentLine = -1;
     let reach = 0;
     let activeRuns = [];
+    const intermediateLyrics = [];
 
     // 4. 🎯 제어 레코드 와 가사라인을 매핑 [바이트 좌표 1:1 직결 매핑]
     rawRecords.forEach((rec) => {
@@ -115,8 +110,8 @@ window.record = rawRecords; // 디버그용
         activeRuns = this._addRun(activeRuns, fromByte, toByte);
 
         // 🎯 AdPlugPlayer 코어 틱과 1:1 매칭
-        this.lyrics.push({
-          tick: rec.tick, // 🎯 순수한 바이너리 원본 틱 바인딩
+        intermediateLyrics.push({
+          tick: rec.tick,  // 🎯 순수한 바이너리 원본 틱 바인딩
           line: rec.line,
           // 각 시점마다 독립적으로 누적 보존된 바이트 맵 조각 리스트 복사
           runs: activeRuns.map(r => [...r])
@@ -127,8 +122,71 @@ window.record = rawRecords; // 디버그용
     // 틱 수 순서대로 정렬
     // 🎯 [완치 포인트 2]: 고속 랩 구간 명령어 유실 방지를 위해 기존의 임의 중복 제거(filter) 로직 전면 폐기
     // 타임라인 시간 축 정렬
-    this.lyrics.sort((a, b) => a.tick - b.tick);
-//window.script = this.lyrics;
+    intermediateLyrics.sort((a, b) => a.tick - b.tick);
+//window.script = intermediateLyrics;
+
+    // 🎯 🔥 [핵심 추가]: 곡을 틀기 전, 모든 가사 프레임의 한글 조각 빌드를 미리 수행합니다!
+    const finalRenderedLyrics = [];
+    const interLen = intermediateLyrics.length;
+
+    for (let i = 0; i < interLen; i++) {
+      const currentLyric = intermediateLyrics[i];
+      const rawBytes = this.lineBytes[currentLyric.line] ?? new Uint8Array(0);
+      
+      // 🎯 [완치 포인트 2]: 현재 틱에 활성화되어 켜져야 하는 누적 바이트 구간 정보 수령
+      // 100ms 타이밍 사이에서 선형 보간 처리를 미세하게 쪼갤 필요 없이 기저 상태 빌드
+      let runsToRender = currentLyric.runs;
+
+      // 🎯 [완치 포인트 3]: 한글 2바이트 및 특수문자 잘림 방지 (글자 경계선 강제 정렬 기술)
+      // 칠해진 영역(lit)과 안 칠해진 영역을 글자 단위로 완벽하게 복원 매핑하여 텍스트 토큰 배열로 빌드
+      // 조합형 텍스트 토큰 미리 조립 수행
+      const textRuns = [];
+      const byteLength = rawBytes.length;
+      let byteIdx = 0;
+
+      const buffer = rawBytes.buffer;
+      const byteOffset = rawBytes.byteOffset;
+
+      // 룩업 테이블 빌드 속도 향상
+      const runFlags = new Uint8Array(byteLength + 1);
+      const runCount = runsToRender.length;
+      for (let r = 0; r < runCount; r++) {
+        const rStart = Math.max(0, runsToRender[r][0]);
+        const rEnd = Math.min(runFlags.length, runsToRender[r][1]);
+        for (let b = rStart; b < rEnd; b++) {
+          runFlags[b] = 1;
+        }
+      }
+
+      while (byteIdx < byteLength) {
+        const start = byteIdx;
+        // 현재 바이트가 ASCII인지 고전 2바이트 조합형 글자/특수문자인지 엄격히 스캔 판정
+        if (rawBytes[byteIdx] < 0x80) byteIdx += 1;
+        else byteIdx += 2;
+        const end = byteIdx;
+
+        // 이 온전한 한 글자가 불이 켜진 누적 바이트 구간(activeRuns) 내부에 속하는지 대조 판별
+        const isLit = runFlags[start] === 1;
+        const charText = JohabDecoder.decode(buffer, byteOffset + start, end - start);
+
+        // 동일한 상태(불 켜짐 여부)를 가진 인접한 문자들을 하나로 묶어 결합 성능 최적화
+        const lastRunIdx = textRuns.length - 1;
+        if (lastRunIdx >= 0 && textRuns[lastRunIdx].lit === isLit) {
+          textRuns[lastRunIdx].text += charText;
+        } else {
+          textRuns.push({ text: charText, lit: isLit });
+        }
+      }
+
+      // 완전히 가공된 가사 스냅샷 최종 확정 보관
+      finalRenderedLyrics.push({
+        tick: currentLyric.tick,
+        line: currentLyric.line,
+        textRuns: textRuns
+      });
+    }
+
+    this.lyrics = finalRenderedLyrics;
     return this.lyrics;
   }
 
@@ -160,24 +218,27 @@ window.record = rawRecords; // 디버그용
     // 각 구간의 시작점(x[0], y[0])을 기준으로 오름차순 정렬하여 반환합니다.
     return merged.sort((x, y) => x[0] - y[0]);
   }
-// AdPlugLyricParser.js (Part 2/2)
 
   /**
-   * 🎯 [실시간 동적 자막 서칭 엔진 교정]:
-   * null 차단 방식을 걷어내고 현재 틱에 매핑되는 자막 정보를 무정지 리포트하여 
-   * 일시정지 해제나 뒤로가기/앞으로가기(Seek) 시에도 싱크가 실시간 칼같이 맞도록 설계
+   * 일시정지 해제나 뒤로가기/앞으로가기(Seek) 시에도 싱크가 실시간 맞도록 설계
    * 실시간 동적 자막 서칭 및 렌더링에 적합한 데이터 구조 스냅샷 리포트
    * 🎯 [실시간 바이트 슬라이싱 보간 검색 엔진]
    * 자바스크립트의 문자열 길이 한계를 우회하고 파일 오리지널 바이트 스케일 위에서 직접 자막 연산
    * 🎯 [한글 깨짐 가드 + 실시간 바이트 결합 추적 검색 엔진]
+   * 🎯 [초고속 연산 및 가비지 컬렉션 최소화 가드 버전 검색 엔진]
+   * 바이트 매핑 구조 최적화 및 Johab 디코더 호출 최소화로 CPU 부하 전면 해소
+   * 🎯 [초고속 연산 프리레이터 패스 스루 엔진]
+   * 미리 빌드된 메모리 상의 텍스트 구조를 인덱스 대조만으로 즉시 리턴 (CPU 점유율 0%에 수렴)
    */
   update(currentTick) {
     if (this.lyrics.length === 0) return null;
     
-    // 1. 현재 틱에 걸치거나 지나간 자막 레코드(현재 상태) 찾기
-    // 1. 현재 타임라인 틱에 위치한 자막 인덱스 서칭
+    // 1. 현재 타임라인 틱에 위치한(걸치거나 지나간) 자막 레코드(현재 상태) 찾기
     let activeIndex = -1;
-    for (let i = 0; i < this.lyrics.length; i++) {
+    const len = this.lyrics.length;
+    
+    // 타임라인 서칭 (이 연산마저 더 줄이고 싶다면 이진 탐색을 쓸 수 있으나, 선형도 충분히 빠름)
+    for (let i = 0; i < len; i++) {
       if (currentTick >= this.lyrics[i].tick) {
         activeIndex = i;
       } else {
@@ -191,82 +252,13 @@ window.record = rawRecords; // 디버그용
     }
 
     this.currentIndex = activeIndex;
-
     const currentLyric = this.lyrics[activeIndex];
-    const rawBytes = this.lineBytes[currentLyric.line] ?? new Uint8Array(0);
-
-	// 가사가 빈 라인일때
-	/*
-    if (this.scripts[currentLyric.line].trim()=='') {
-      return { line: 0, textRuns: [{ text: "                          🎵 (간주 중)", lit: false }] };
-    }
-	*/
-
-    // 🎯 [완치 포인트 2]: 현재 틱에 활성화되어 켜져야 하는 누적 바이트 구간 정보 수령
-    let activeRuns = currentLyric.runs;
-
-    // 실시간 선형 보간 처리 (다음 명령어와 같은 줄(Line)일 때만 인터벌 매핑)
-    if (activeIndex < this.lyrics.length - 1 && currentLyric.line === this.lyrics[activeIndex + 1].line) {
-      // 2. 부드러운 진행을 위한 다음 레코드 역산
-      const nextLyric = this.lyrics[activeIndex + 1];
-      // 두 가사 레코드 사이의 시간(Tick) 폭 계산
-      const tickDuration = nextLyric.tick - currentLyric.tick;
-
-      if (tickDuration > 0) {
-        // 현재 시간이 두 레코드 사이에서 몇 % 진행되었는지 비율(0.0 ~ 1.0) 계산
-        // 두 자막 프레임 사이의 진행 비율 연산 (0.0 ~ 1.0)
-        // 2. 두 자막 프레임 사이의 실시간 진행 비율 연산 (0.0 ~ 1.0)
-        const progressRatio = (currentTick - currentLyric.tick) / tickDuration;
-        
-        // 현재 보간 중인 유동적인 끝 자락 구간만 progressRatio 비율로 연장 연산
-        if (nextLyric.runs.length > 0 && activeRuns.length > 0) {
-          const lastIdx = activeRuns.length - 1;
-          const nextLastIdx = nextLyric.runs.length - 1;
-          
-          if (nextLyric.runs[nextLastIdx][0] >= activeRuns[lastIdx][0]) {
-            // 🎯 [완치 포인트 3]: 중간 단어부터 켜지는 버그 해결
-            // 다음 명령어의 타겟 글자 수가 현재보다 작아진다면 마디가 새로 시작되는 것이므로 기저점을 0으로 강제 세팅
-            const currentEnd = activeRuns[lastIdx][1];
-            const nextEnd = nextLyric.runs[nextLastIdx][1];
-            
-            // 3. 🎯 실시간 연장된 끝 바이트 오프셋 계산
-            const interpolatedEnd = currentEnd + (nextEnd - currentEnd) * progressRatio;
-            activeRuns = activeRuns.map((r, idx) => idx === lastIdx ? [r[0], Math.round(interpolatedEnd)] : r);
-          }
-        }
-      }
-    }
-
-    // 🎯 [완치 포인트 3]: 한글 2바이트 및 특수문자 잘림 방지 (글자 경계선 강제 정렬 기술)
-    // 칠해진 영역(lit)과 안 칠해진 영역을 글자 단위로 완벽하게 복원 매핑하여 텍스트 토큰 배열로 빌드
-    const textRuns = [];
-    let byteIdx = 0;
-
-    while (byteIdx < rawBytes.length) {
-      const start = byteIdx;
-      // 현재 바이트가 ASCII인지 고전 2바이트 조합형 글자/특수문자인지 엄격히 스캔 판정
-      if (rawBytes[byteIdx] < 0x80) byteIdx += 1;
-      else byteIdx += 2;
-      const end = byteIdx;
-
-      // 이 온전한 한 글자가 불이 켜진 누적 바이트 구간(activeRuns) 내부에 속하는지 대조 판별
-      const isLit = activeRuns.some(([rStart, rEnd]) => start >= rStart && end <= rEnd);
-      const singleCharByte = rawBytes.subarray(start, end);
-      const charText = JohabDecoder.decode(singleCharByte.buffer, singleCharByte.byteOffset, singleCharByte.byteLength);
-
-      // 동일한 상태(불 켜짐 여부)를 가진 인접한 문자들을 하나로 묶어 결합 성능 최적화
-      if (textRuns.length > 0 && textRuns[textRuns.length - 1].lit === isLit) {
-        textRuns[textRuns.length - 1].text += charText;
-      } else {
-        textRuns.push({ text: charText, lit: isLit });
-      }
-    }
-
     this.currentIndex = currentLyric.line; // 전체가사 창 매핑용, activeIndex 와 다른값
 
+    // 🎯 이미 빌드가 완료된 객체를 그대로 포워딩만 해줍니다. 디코딩/루프 연산이 전혀 없습니다.
     return {
       line: currentLyric.line,
-      textRuns // 🎯 app.js가 바로 루프 돌며 출력할 수 있는 조각 배열 전달
+      textRuns: currentLyric.textRuns // 🎯 app.js가 바로 루프 돌며 출력할 수 있는 조각 배열 전달
     };
   }
 

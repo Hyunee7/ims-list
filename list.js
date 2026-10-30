@@ -120,6 +120,7 @@ var _xhr;
         //log('start_page', start_page);
         var i=1;
         var print_page="";
+        var move_page = 1; // ??
 
 
         //log('total_page', total_page);

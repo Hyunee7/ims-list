@@ -261,9 +261,24 @@ button:disabled {
 }
 
 
-
 #infoAuthor span {
 	color: #46474b;
+}
+
+/* 전체 가사 내용 */
+#lyricsBtn {
+	margin-top:15px;
+	font-size:12px;
+	font-weight:bold;
+	color:#000;
+	cursor:pointer;
+	display: flex;
+	justify-content: space-between;
+}
+
+/* 전체 가사 내용 > 시계 */
+#lyricsBtn span{
+	font-weight:normal;
 }
 
 /* 📱 4. [아이폰 X / 모바일 긴급 도킹 브레이크 레이어]: 가로 폭이 좁은 스마트폰 화면 대응 */

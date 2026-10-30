@@ -8,7 +8,7 @@ export class AdPlugLyricParser {
     this.lyrics = []; // 🎯 [구조 교정]: 이제 단순 바이트 맵이 아니라, 완성된 { tick, line, textRuns } 프리렌더링 데이터가 담깁니다.
     this.currentIndex = -1;
     this.lineBytes = []; // 바이트 단위 정밀 역산을 위한 버퍼 리스트
-	this.scripts   = []; // 전체 가사 버퍼
+    this.scripts   = []; // 전체 가사 버퍼
   }
   
   ims = {header:null,instrument:null};
@@ -265,6 +265,7 @@ window.record = rawRecords; // 디버그용
   // 재설정
   reset() {
     this.lineBytes = []; // 가사배열
+    this.lyrics = []; // 교정된 가사진행 레코드정보
 	this.scripts = []; // 가사라인(전체가사 출력용)
     this.currentIndex = -1; // 가사 배열 위치
     this.is_ims_loaded = false; // ims 적재 여부

@@ -163,9 +163,10 @@ window.addEventListener("load", async ()=> {
 	}
 
 	show_page_num = 8; // 페이지 개수
-	if(navigator.platform == 'Win32') page_num = isMobile?9:15;
+	if(navigator.platform == 'Win32') page_num = isMobile?11:15;
 	if(navigator.platform == 'iPhone'){ page_num = 6; show_page_num=5;}  // iPhoneX
 	if(navigator.platform == 'Linux armv81') page_num = 20; // ALLDOCUBE iPlay40
+//alert(navigator.platform)
 });
 
 /* 원본 인터페이스 액션 함수 브릿지 정의 */
@@ -226,7 +227,7 @@ function getSongFile(idx, ext='.IMS'){
 window.addEventListener('resize', () => {
   isMobile = window.innerWidth<600; // 가로폭이 600px 미만이면 모바일 처리
   
-  if(navigator.platform == 'Win32') page_num = isMobile?9:15;
+  if(navigator.platform == 'Win32') page_num = isMobile?11:15;
 //  if(navigator.platform == 'iPhone'){ page_num = 6; show_page_num=5;}  // iPhoneX
 //  if(navigator.platform == 'Linux armv81') page_num = 20; // ALLDOCUBE iPlay40
   

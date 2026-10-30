@@ -8,7 +8,9 @@ import { AdPlugPlayer } from './AdPlugPlayer.js';
 const player = new AdPlugPlayer();
 
 // 외부호출 시 전달된 IMS 경로
-let MUSIC_URL = './100MEET.IMS'; 
+let MUSIC_URL = './100MEET.IMS';
+
+// =================================================================
 // 플레이리스트 [미사용]
 const PLAYLIST = [
   '../dos/C_Drv/MUSIC/DATA/COLLECT/SB-NOPRO.IMS',
@@ -16,6 +18,7 @@ const PLAYLIST = [
   '../dos/C_Drv/MUSIC/DATA/COLLECT/SIM-BUHL.IMS'
 ];
 let PLAYLIST_index = 0;
+// =================================================================
 
 const params = new URLSearchParams(unescape(window.location.search)); // GET 방식 파라미터 파싱
 const isPopup = params.get('p') || false;
@@ -24,7 +27,7 @@ let uiTimerId = null; // 연주중 처리 루프 인터벌 저장
 let isUserDraggingSlider = false; // 진행바 값 변경 여부
 let info = {title:"", files:[]}; // 곡명, 곡 파일들
 
-// 전체 가사 출력. 중복되는 라인는 제거함.
+// 전체 가사 출력.
 function renderAllLyricsToWindow(lyricsArray) {
   const viewer = document.getElementById('allLyricsView');
   //viewer.classList.remove("hidden");
@@ -36,7 +39,8 @@ function renderAllLyricsToWindow(lyricsArray) {
     return;
   }
 
-  const deDupingLyricsArray = lyricsArray;
+  //const deDupingLyricsArray = lyricsArray; // 중복제거
+  
   // 가사 출력
   lyricsArray.forEach((line, idx) => {
     const row = document.createElement('div');
@@ -45,8 +49,6 @@ function renderAllLyricsToWindow(lyricsArray) {
     viewer.appendChild(row);
   });
 }
-
-// app.js 맨 하단 영역의 initSystem() 호출부를 아래 엔진으로 전면 교정합니다.
 
 // 🎯 주소창에서 ?url=... 링크 주소를 실시간 파싱 추출합니다.
 function getMusicUrlFromQuery() {
@@ -64,9 +66,6 @@ window['AdPlugPlayer'] = player; // 디버그용?
     const queryMusicUrl = getMusicUrlFromQuery();
     const FINAL_MUSIC_URL = queryMusicUrl ? decodeURIComponent(queryMusicUrl) : MUSIC_URL; // 🎯 외부 입력 우선 순위 적용
 
-    // 이하는 교정 완료된 정밀 64바이트 파라미터 주사 결합 유지 사양
-    //info.files.push(FINAL_MUSIC_URL.split('/').pop());
-
     // 🎯 전역 스코프에 최종 확정된 음악 URL 주소 바인딩 (startPlay 함수가 읽어 쓰도록 조율)
     window.ACTIVE_MUSIC_URL = FINAL_MUSIC_URL;
 
@@ -79,7 +78,7 @@ window['AdPlugPlayer'] = player; // 디버그용?
       document.getElementById('playStatus').innerText = "✅ 모든 버퍼 탑재 완료! 재생 버튼을 누르세요.";
       document.getElementById('btnPlay').disabled = false;
     }
-	
+
     const initialVol = Math.round(player.currentVolume * 100); // 기본 볼륨설정
     document.getElementById('volumeValue').innerText = `${initialVol}%`;
   } catch (err) {
@@ -89,9 +88,7 @@ window['AdPlugPlayer'] = player; // 디버그용?
 }
 
 // 비주얼라이저. 화면이 그려 질때마다 반복함
-// app.js 내 setupVisualizer 함수를 아래 완전판 엔진으로 전면 교정합니다.
-// app.js 내 setupVisualizer 함수를 연산량 최소화 가드 버전으로 교정합니다.
-// app.js 내 setupVisualizer 함수를 구형 모바일 호환성 가드 버전으로 교정합니다.
+//  연산량 최소화. 구형 모바일 호환성 교정.
 function setupVisualizer() {
   const analyser = player.analyserNode;
   if (!analyser) return;
@@ -101,21 +98,21 @@ function setupVisualizer() {
   
   // 캔버스 그래픽 픽셀 해상도 동기화 (DPR 매핑)
   const dpr = window.devicePixelRatio || 1;
-  const clientWidth = canvas.clientWidth;
+  const clientWidth  = canvas.clientWidth;
   const clientHeight = canvas.clientHeight;
   
-  canvas.width = clientWidth * dpr;
+  canvas.width  = clientWidth  * dpr;
   canvas.height = clientHeight * dpr;
   canvasCtx.scale(dpr, dpr);
 
   // 전광판 하드웨어 규격 설정
-  const barCount = 16;       // 16열
+  const barCount     = 16;   // 16열
   const segmentCount = 22;   // 32층
-  const segmentGap = 1;      // LED 간격
+  const segmentGap   =  1;   // LED 간격
   
   // 피크 홀드 물리 가속 법칙 상수
   const PEAK_HOLD_FRAMES = 15;
-  const PEAK_FALL_ACCELERATION = 0.3;
+  const PEAK_FALL_ACCELERATION = 0.3;  // 떨어지는 속도
   const VALUE_FALL_SPEED = 4;
 
   // 레드로 LED 색상 조합 명세
@@ -136,14 +133,14 @@ function setupVisualizer() {
   const dataArray = new Uint8Array(bufferLength);
 
   // 🎯 [CPU 해소 핵심 1]: 매번 352번 루프 돌며 사각형을 쪼개 그리지 않고, 
-  // 캔버스 자체의 선형 그라데이션 컬러맵을 단 1번만 프리셋으로 구워 메모리에 바인딩합니다.
+  // 캔버스 자체의 선형 그라데이션 컬러맵을 단 1번만 프리셋으로 구워 메모리에 바인딩.
   const gradient = canvasCtx.createLinearGradient(0, clientHeight, 0, 0);
-  gradient.addColorStop(0, colors.low);
-  gradient.addColorStop(0.33, colors.low);
-  gradient.addColorStop(0.34, colors.mid);
-  gradient.addColorStop(0.66, colors.mid);
+  gradient.addColorStop(0   , colors.low );
+  gradient.addColorStop(0.33, colors.low );
+  gradient.addColorStop(0.34, colors.mid );
+  gradient.addColorStop(0.66, colors.mid );
   gradient.addColorStop(0.67, colors.high);
-  gradient.addColorStop(1, colors.high);
+  gradient.addColorStop(1   , colors.high);
 
   let lastTime = 0;
   const targetInterval = 1000 / 30; // 30fps 고정 타겟
@@ -161,11 +158,9 @@ function setupVisualizer() {
 
     // 🎯 [구형 안드로이드 완치 방어선 1]: 
     // 구형 웹뷰나 크롬 구버전은 requestAnimationFrame이 타임스탬프를 누락하거나
-    // 초기 프레임에서 밀리초 동기화 에러(NaN)를 낼 수 있습니다.
-    // 값이 정상적이지 않다면 고유 성능 시계인 performance.now() 혹은 Date.now()로 정밀 대체 피드백을 구축합니다.
-    // 🎯 [CPU 해소 핵심 2 - 타이밍 가드 완치]: 
-    // 기존 코드는 성능 시계를 대체한다면서 조건문 비교 이후 lastTime을 timestamp(NaN 일 수 있음)로 
-    // 덮어버려서 프레임 제한 가드가 작동하지 않고 무한 고속 주사를 돌았습니다. 이를 엄격하게 정정합니다.
+    // 초기 프레임에서 밀리초 동기화 에러(NaN)를 낼 수 있다.
+    // 값이 정상적이지 않다면 고유 성능 시계인 performance.now() 혹은 Date.now()로 대체.
+    // 🎯 [CPU 해소 핵심 2 - 타이밍 가드]: timestamp 이 NaN 일 경우를 대비함.
     const currentTimestamp = timestamp || (window.performance ? performance.now() : Date.now());
 
     // 🎯 [구형 안드로이드 완치 방어선 2]:
@@ -189,6 +184,7 @@ function setupVisualizer() {
     const barWidth = (clientWidth - (totalBarGap * (barCount - 1))) / barCount;
     const segmentHeight = (clientHeight - (segmentGap * (segmentCount - 1))) / segmentCount;
 
+    // 바 개수 만큼 그리기
     for (let i = 0; i < barCount; i++) {
       const startBin = skipBins + i * binsPerBar;
       const endBin = Math.min(startBin + binsPerBar, bufferLength);
@@ -197,24 +193,24 @@ function setupVisualizer() {
       const avg = sum / (endBin - startBin);
       const rawValue = Math.round((avg / 255) * 100);
 
-      const prev = barData[i];
+      const prev = barData[i]; // 이전 피크값
 
       // 하강 속도 및 물리 피크 홀드 계산
       let value = rawValue >= prev.value ? rawValue : Math.max(rawValue, prev.value - VALUE_FALL_SPEED);
-      let peak = prev.peak;
-      let peakHoldTime = prev.peakHoldTime;
+      let peak          = prev.peak;
+      let peakHoldTime  = prev.peakHoldTime;
       let peakFallSpeed = prev.peakFallSpeed;
 
-      if (value >= peak) {
+      if (value >= peak) {           // 피크가 올랐을때
         peak = value; peakHoldTime = PEAK_HOLD_FRAMES; peakFallSpeed = 0;
-      } else if (peakHoldTime > 0) {
+      } else if (peakHoldTime > 0) { // 피크 홀드값 줄이기
         peakHoldTime--;
-      } else {
+      } else {                       // 피크값 없으면 바닥에 피크홀드 고정
         peakFallSpeed += PEAK_FALL_ACCELERATION;
         peak = Math.max(2.5, peak - peakFallSpeed); // 피크값 하단에 고정
       }
 
-      barData[i] = { value, peak, peakHoldTime, peakFallSpeed };
+      barData[i] = { value, peak, peakHoldTime, peakFallSpeed }; // 계산된 피크값 보관
 
       const barX = i * (barWidth + totalBarGap);
       
@@ -223,17 +219,17 @@ function setupVisualizer() {
       const peakSegIndex = Math.min(Math.floor((peak * segmentCount) / 100), segmentCount - 1);
 
       // 🎯 [CPU 해소 핵심 3 - 2D 컨텍스트 드로잉 압축]:
-      // 기존의 격자 층(segIndex) 무한 내포 루프를 통째로 들어내어 제거했습니다!
-      // 대신 열마다 통째로 기둥 사각형 딱 1개만(`fillRect`) 그라데이션 컬러로 한 번에 밀어버립니다.
+      // 기존의 격자 층(segIndex) 무한 내포 루프를 통째로 들어내어 제거!
+      // 대신 열마다 통째로 기둥 사각형 딱 1개만(`fillRect`) 그라데이션 컬러로 한 번 그려줌.
       if (activeTopIndex > 0) {
         const drawnHeight = activeTopIndex * (segmentHeight + segmentGap) - segmentGap;
         const barY = clientHeight - drawnHeight;
         
-        canvasCtx.fillStyle = gradient;
+        canvasCtx.fillStyle = gradient; // 미리 정의된 그라데이션 값 매핑
         canvasCtx.fillRect(barX, barY, barWidth, drawnHeight);
 
         // 🎯 [LED 도스 전광판 느낌 복원]: 통짜 사각형 위에 검은색 가로줄(Gap)들을 뭉뚱그려 한 번에 주사하여
-        // 352번 그리던 연산을 단 16번 그리기로 줄이면서도 완벽한 LED 눈금 비주얼을 유지합니다.
+        // 352번 그리던 연산을 단 16번 그리기로 줄이면서도 완벽한 LED 눈금 비주얼을 유지.
         canvasCtx.fillStyle = colors.bg;
         for (let segIndex = 1; segIndex < activeTopIndex; segIndex++) {
           const gapY = clientHeight - (segIndex * (segmentHeight + segmentGap));
@@ -265,8 +261,9 @@ function formatTime(seconds) {
 }
 // app.js (Part 2/2)
 
+// =================================================================
 // 연주중 처리 루프
-// app.js 파일 내 startInterfaceLoop 루프 내부의 가사 틱 검출 수식을 아래와 같이 교정합니다.
+// startInterfaceLoop 루프 내부의 가사 틱 검출 수식을 교정.
 let rAF_InterfaceId = null; // 🎯 setInterval 대신 애니메이션 프레임 ID 저장 보관함
 
 // 연주중 처리 루프 (rAF 기반 오디오 엔진 클락 동기화 버전)
@@ -281,8 +278,7 @@ function startInterfaceLoop() {
 
   // requestAnimationFrame 반복 실행 엔진
   function loop() {
-    // 🎯 오디오 프로세서가 노래가 끝났다고 신호를 보내면 즉시 인터페이스 연주 종료 처리 단행
-    // 1. 오디오 프로세서가 노래가 끝났다고 신호를 보내면 즉시 인터페이스 연주 종료 처리 단행
+    // 1. 🎯 오디오 프로세서가 노래가 끝났다고 신호를 보내면 즉시 인터페이스 연주 종료 처리 단행
     if (player.queue && player.queue.isFinished) {
       stopInterface(); 
       if(isPopup) history.go(-1); // 이전 페이지 복귀
@@ -299,17 +295,16 @@ function startInterfaceLoop() {
     // 2. 🎯 오디오 코어 가사 엔진 클락에서 현재 실시간 연주 틱 수령
     const currentEmuTick = player.getCurrentEmuTick() - 8;
 
-    // [부하 차단 핵심 가드]: 엔진 내부 틱이 이전 프레임과 동일하다면 DOM 렌더링을 전면 패스합니다.
+    // [부하 차단 핵심 가드]: 엔진 내부 틱이 이전 프레임과 동일하다면 DOM 렌더링을 전면 패스.
     if (currentEmuTick === lastEmuTick) {
       rAF_InterfaceId = requestAnimationFrame(loop);
       return;
     }
     lastEmuTick = currentEmuTick; // 현재 틱을 기저점에 백업
 
-    // 🎯 [배속 맞춤형 진행 시간 보정]: 시간 텍스트와 프로그레스 바가 배속 속도에 동기화되도록 처리
-    // 3. [배속 맞춤형 진행 시간 보정]: 시간 텍스트와 프로그레스 바 동기화
+    // 3. [배속 맞춤형 진행 시간 보정]: 시간 텍스트와 프로그레스 바가 배속 속도에 동기화되도록 처리
     const timeInfo = player.getPlaybackTime();
-    // 만약 고유 시간 함수가 배속을 인식하지 못한다면 인터페이스 갱신용 가상 보정 로직을 추가 결합할 수 있습니다.
+    // 만약 고유 시간 함수가 배속을 인식하지 못한다면 인터페이스 갱신용 가상 보정 로직을 추가 결합할 수 있다. <- ??
     document.getElementById('timeText').innerText = `${formatTime(timeInfo.current)} / ${formatTime(timeInfo.total)}`;
     
     if (!isUserDraggingSlider && timeInfo.total > 0) {
@@ -367,18 +362,18 @@ function startInterfaceLoop() {
   // 첫 진입 루프 가동
   rAF_InterfaceId = requestAnimationFrame(loop);
 }
+// =================================================================
 
-// 연주 종료시 화면 처리
-// 🎯 기존 stopInterface() 함수 내부 초기화 구문에 아래 코드를 추가 결합해 주세요!
-// 연주 종료시 화면 처리 (rAF 클락 리셋 구문 추가 결합 완료)
+
+// 🎯 연주 종료시 화면 처리 (rAF 클락 리셋 구문 추가 결합 완료)
 function stopInterface() {
   player.stop();          // 재생중지
-  // 🎯 큐 엔진에 잠겨있던 종료 플래그를 완전히 잠금 해제(false)합니다.
+  // 🎯 큐 엔진에 잠겨있던 종료 플래그를 완전히 잠금 해제(false)
   if (player.queue) {
     player.queue.isFinished = false; 
   }
 
-  // 🎯 고정 인터벌 타이머 해제 대신 rAF 애니메이션 클락 체인을 완전히 끊어냅니다.
+  // 🎯 고정 인터벌 타이머 해제 대신 rAF 애니메이션 클락 체인을 완전히 끊어낸다.
   if (rAF_InterfaceId !== null) {
     cancelAnimationFrame(rAF_InterfaceId);
     rAF_InterfaceId = null;
@@ -397,7 +392,8 @@ function stopInterface() {
     updatePitchUI();
   }
 
-  //글자크기 조절되게(css 영향받게) 수정
+  // 화면 처리
+  // 글자크기 조절되게(css 영향받게) 수정
   document.getElementById('lyricBox').innerHTML = "<span>             🎶 옥소리 애드립 노래방 시스템 준비 완료</span>";
   document.getElementById('timeText').innerText = "0:00 / 0:00";
   document.getElementById('progressBar').value = 0;
@@ -419,20 +415,19 @@ async function startPlay() {
     player.queue.isFinished = false;
   }
   
-  if (!player.fileLoaded) {
-	info = {title:"", files:[]}; // 곡명, 곡 파일들
-
-    // 🎯 고정된 MUSIC_URL 대신 오토플레이 캐처가 확정한 유동적 타겟 URL을 바라봅니다.
+  if (!player.fileLoaded) {  // 읽은 파일이 없을 때
+    // 🎯 url 파라미터 있으면 MUSIC_URL 대신 URL 값을 배치.
     const targetUrl = window.ACTIVE_MUSIC_URL || MUSIC_URL;
     await player.loadMusicFile( escape(targetUrl) ); // 👈 targetUrl로 변경
     await renderAllLyricsToWindow(player.parser.scripts);
 
-	info.title = player.ims.header.tuneName; // 제목
+    info = {title:"", files:[]}; // 곡명, 곡 파일들
+    info.title = player.ims.header.tuneName; // 제목
     info.files.push(targetUrl.split('/').pop()); // 음악 파일명 저장
-	if(player.issName) info.files.push(player.issName);
-	else 
+    if(player.issName) info.files.push(player.issName);
+    else 
       document.getElementById('lyricBox').innerHTML = "<span>            🎵 (자막 파일이 존재하지 않는 곡입니다)</span>";
-	info.files.push(player.memory.bnkName); // BNK 파일명
+    info.files.push(player.memory.bnkName); // BNK 파일명
   }  
 
   handleVisibilityChange(); // audioContext 깨우기
@@ -447,7 +442,6 @@ async function startPlay() {
   document.getElementById('progressBar').disabled = false;
 
   // 재생정보
-  //const info = player.getTrackInfo(); // 사용불가
   document.getElementById('infoTitle').innerText = info.title;
   document.getElementById('infoAuthor').innerText = info.files.join(', ');
 
@@ -482,7 +476,7 @@ document.getElementById('btnStop').addEventListener('click', () => {
 //  setPlaybackPitch(parseFloat(e.target.value));
 //});
 // =================================================================
-// 🎯 [완치본]: 0.5 ~ 3.0 배속 자석형 정밀 슬라이더 제어 레이어 도킹
+// 🎯 0.5 ~ 3.0 배속 자석형 정밀 슬라이더 제어 레이어 도킹
 // =================================================================
 const speedSlider = document.getElementById('speedSlider');
 const speedTxt = document.getElementById('speedTxt');
@@ -501,12 +495,13 @@ if (speedSlider && speedTxt) {
     }
   });
 }
+// =================================================================
 
 
 
 // 피치조정
 // =================================================================
-// 🎯 [완치본]: 노래방 전용 반음 단위 음정(Key) 제어 레이어 시스템
+// 🎯 노래방 전용 반음 단위 음정(Key) 제어 레이어 시스템
 // =================================================================
 const btnPitchUp = document.getElementById('btnPitchUp');
 const btnPitchDown = document.getElementById('btnPitchDown');
@@ -553,9 +548,7 @@ btnPitchReset?.addEventListener('click', () => {
   player.setPitchAndSpeed(0, currentSpeed);
   updatePitchUI();
 });
-
-
-
+// =================================================================
 
 // 진행바
 const progressBar = document.getElementById('progressBar');
@@ -657,23 +650,6 @@ window.extPlay = extPlay; // export 가 안되서 강제 전달
  
  
  
- 
-/*
-if(params.get('ims') && isIPad) {
-	setTimeout(()=>{
-		startPlay();
-//		alert(player.audioContext.state)
-		player.audioContext.onstatechange = () => {
-		  console.log('AudioContext state:', audioContext.state);
-		  //alert('AudioContext state:', audioContext.state);
-		  if (audioContext.state === 'suspended') {
-			// 필요 시 resume() 시도
-			audioContext.resume();
-		  }
-		};
-	},3000);
-}
-*/
 
 function isPC() {
     const userAgent = navigator.userAgent.toLowerCase();
@@ -749,7 +725,6 @@ function handleVisibilityChange() {
   }
 }
 
-// 브라우저 탭 활성화 감지
 // 브라우저 탭 활성화 감지 시스템에 결합 명세 보존
 document.addEventListener('visibilitychange', handleVisibilityChange);
 // 앱 포커스 감지 (창 전환 등)
@@ -760,6 +735,18 @@ window.addEventListener('focus', handleVisibilityChange);
 /**
  * 2. iOS 버그 우회를 위한 'Suspend 후 Resume' 트릭
  */
+function isIOS() {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  
+  // iPhone, iPad, iPod 체크
+  const isiPhoneOrIPadOrIPod = /iPad|iPhone|iPod/.test(userAgent);
+  
+  // 아이패드 OS 13 이상 (데스크톱 모드 및 터치 지원 확인)
+  const isMacWithTouch = (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  
+  return isiPhoneOrIPadOrIPod || isMacWithTouch;
+}
+ 
 async function forceResumeIOS() {
   // 강제로 중지했다가 다시 깨우는 iOS 전용 트릭
   await player.audioContext.suspend();
@@ -769,14 +756,15 @@ async function forceResumeIOS() {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     //forceResumeIOS().catch(console.error);
-    if(navigator.platform == 'iPhone') forceResumeIOS().catch(console.error);
+    //if(navigator.platform == 'iPhone') forceResumeIOS().catch(console.error);
+    if(isIOS()) forceResumeIOS().catch(console.error);
   }
 });
 
 
 /**
  * 3. 화면이 꺼져도 오디오를 계속 유지하고 싶다면 (HTML5 오디오 믹싱)
- * /
+ */
 // 1. 아주 짧은 묵음(Silent) 오디오 파일이나 Data URI를 생성
 const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
 silentAudio.loop = true;
@@ -794,5 +782,4 @@ document.addEventListener('visibilitychange', () => {
     player.audioContext.resume();
   }
 });
-*/
-//alert(2)
+/**/

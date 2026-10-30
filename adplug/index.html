@@ -89,7 +89,7 @@
       </div>
 
       <!-- 💡 [신규 추가 단락]: 가사 전체 내용 줄글 스크롤 뷰어 창 -->
-      <div id="lyricsBtn" style="margin-top:15px; font-size:12px; font-weight:bold; color:#000;cursor:pointer;">📑 가사 전체 내용</div>
+      <div id="lyricsBtn">📑 가사 전체 내용<span>⏰<span id="timeer">00:00:00</span></span></div>
       <div id="allLyricsView" class="all-lyrics-viewer hidden">
         <div style="color:#808080; text-align:center; padding-top:40px;">음악 버퍼 주입 시 전체 줄글이 생성됩니다.</div>
       </div>
@@ -98,7 +98,7 @@
 
   <!-- 조합형한글 변홤모듈 -->
   <script src="johab-decoder.js"></script>   
-  
   <script type="module" src="./app.js"></script>
+  <script type="module" src="./timer.js"></script>
 </body>
 </html>

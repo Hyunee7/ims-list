@@ -313,3 +313,5 @@ document.addEventListener('webkitfullscreenchange', () => {
 		container.style.display = "none";
 	}
 });
+
+document.querySelector('.dos-header').addEventListener('click',notImsLoad)

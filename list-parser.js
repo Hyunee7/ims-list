@@ -165,7 +165,7 @@ function randomPage(){
 		console.log('모든 fetch 완료:', finalData.length);
 		finalData.map(rs=>loadList(rs));
 console.log(songs)
-		await notImsLoad();
+		//await notImsLoad();
 		
 		randomPage();
 		setLocalDb(songs);

@@ -34,7 +34,11 @@
       </div>
 
       <!-- 3. 실시간 재생 타임 레이블 및 탐색 바 -->
-      <div id="timeText" class="time-text">0:00 / 0:00</div>
+      <div class=time-area>
+        <span>🥁 <span id=bpm>??</span></span>
+        <span>⏱️ <span id="curTick">0</span></span>
+        <span>⏳ <span id="timeText" class="time-text">0:00 / 0:00</span></span>
+      </div>
       <input type="range" id="progressBar" class="progress-slider" value="0" min="0" max="100" disabled>
 
       <!-- 4. 실시간 사운드 볼륨 제어 및 음소거 단락 판넬 -->
@@ -89,7 +93,7 @@
       </div>
 
       <!-- 💡 [신규 추가 단락]: 가사 전체 내용 줄글 스크롤 뷰어 창 -->
-      <div id="lyricsBtn">📑 가사 전체 내용<span>⏰<span id="timeer">00:00:00</span></span></div>
+      <div id="lyricsBtn">📑 가사 전체 내용<span>⏰ <span id="timeer">00:00:00</span></span></div>
       <div id="allLyricsView" class="all-lyrics-viewer hidden">
         <div style="color:#808080; text-align:center; padding-top:40px;">음악 버퍼 주입 시 전체 줄글이 생성됩니다.</div>
       </div>

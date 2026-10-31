@@ -293,8 +293,11 @@ function startInterfaceLoop() {
     }
 
     // 2. 🎯 오디오 코어 가사 엔진 클락에서 현재 실시간 연주 틱 수령
-    const currentEmuTick = player.getCurrentEmuTick() - 8;
-
+    let currentEmuTick = player.getCurrentEmuTick();
+    document.getElementById('curTick').innerText = currentEmuTick.toLocaleString();
+    if( /\.ims/i.test(info.files[0]) ) currentEmuTick = currentEmuTick /8 -8;
+    if( /\.rol/i.test(info.files[0]) ) currentEmuTick = currentEmuTick * 7.4;
+    if( /\.sop/i.test(info.files[0]) ) currentEmuTick = currentEmuTick * 3.75;
     // [부하 차단 핵심 가드]: 엔진 내부 틱이 이전 프레임과 동일하다면 DOM 렌더링을 전면 패스.
     if (currentEmuTick === lastEmuTick) {
       rAF_InterfaceId = requestAnimationFrame(loop);
@@ -419,15 +422,18 @@ async function startPlay() {
     // 🎯 url 파라미터 있으면 MUSIC_URL 대신 URL 값을 배치.
     const targetUrl = window.ACTIVE_MUSIC_URL || MUSIC_URL;
     await player.loadMusicFile( escape(targetUrl) ); // 👈 targetUrl로 변경
+//console.log('player.parser.scripts', player.parser.scripts)    
     await renderAllLyricsToWindow(player.parser.scripts);
+    
+    const ext = player.getFileExtension(targetUrl);
 
     info = {title:"", files:[]}; // 곡명, 곡 파일들
-    info.title = player.ims.header.tuneName; // 제목
+    info.title = ext=='IMS'?player.ims.header.tuneName:"[제목없음]"; // 제목
     info.files.push(targetUrl.split('/').pop()); // 음악 파일명 저장
     if(player.issName) info.files.push(player.issName);
     else 
       document.getElementById('lyricBox').innerHTML = "<span>            🎵 (자막 파일이 존재하지 않는 곡입니다)</span>";
-    info.files.push(player.memory.bnkName); // BNK 파일명
+    if(player.bnkName||false) info.files.push(player.bnkName); // BNK 파일명
   }  
 
   handleVisibilityChange(); // audioContext 깨우기
@@ -444,9 +450,12 @@ async function startPlay() {
   // 재생정보
   document.getElementById('infoTitle').innerText = info.title;
   document.getElementById('infoAuthor').innerText = info.files.join(', ');
+//console.log(info);
 
-  const mapped = player.parser.get_mapped_instrument(); // 매핑악기수
-  document.getElementById('infoAuthor').innerHTML += ` (${mapped.mapped}<span>/</span>${mapped.ims}<span>/</span>${mapped.bnk.toLocaleString()})`;
+  if( /\.ims/i.test(info.files[0]) ){
+    const mapped = player.parser.get_mapped_instrument(); // 매핑악기수
+    document.getElementById('infoAuthor').innerHTML += ` (${mapped.mapped}<span>/</span>${mapped.ims}<span>/</span>${mapped.bnk.toLocaleString()})`;
+  }
 
   setupVisualizer();
   startInterfaceLoop();
@@ -690,7 +699,7 @@ function handleVisibilityChange() {
     if (player.isPlaying && !player.isPaused) {
       
       // A. 현재 오디오 코어의 진짜 하드웨어 틱 수령
-      const currentEmuTick = player.getCurrentEmuTick() - 8;
+      const currentEmuTick = player.getCurrentEmuTick()/8 - 8;
       
       // B. 가사 파서에게 현재 틱의 자막 스냅샷을 강제로 즉시 수급 요청
       const lyricSnapshot = player.parser.update(currentEmuTick);
@@ -783,3 +792,4 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 /**/
+

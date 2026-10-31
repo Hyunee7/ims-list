@@ -83,7 +83,7 @@ window.record = rawRecords; // 디버그용
   
       offset += 64;
     }
-
+//console.log('this.scripts',this.scripts);
     // 🎯 [완치 포인트 1]: 이전 좌표 조건부 누적 연산 매커니즘 가동
     // [바이트 구간 누적 처리용 임시 저장소]
     let currentLine = -1;

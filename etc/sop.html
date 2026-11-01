@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Han Lib Pro - SOP 파일 구조 분석기 (V0.1)</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background-color: #f4f7f6;
+            margin: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #34495e;
+            padding-bottom: 10px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .drop-zone {
+            border: 3px dashed #bdc3c7;
+            border-radius: 5px;
+            padding: 50px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #7f8c8d;
+            cursor: pointer;
+            background: #fafafa;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        .drop-zone.hover {
+            border-color: #3498db;
+            background: #e8f4f8;
+            color: #2980b9;
+        }
+        .section {
+            margin-top: 30px;
+        }
+        .section h2 {
+            font-size: 1.3em;
+            background: #34495e;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #2c3e50;
+        }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: bold;
+            color: white;
+        }
+        td span {
+            padding-left: 66px;
+            color:#666;
+            font-size:11px;
+        }
+        .badge-info { background-color: #3498db; }
+        .badge-success { background-color: #2ecc71; }
+        /*.badge-warning { background-color: #f1c40f; color: #333; }*/
+        .badge-warning { background-color: #715d0f; color: #333; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Han Lib Pro - SOP 파일 구조 분석기</h1>
+    <p>90년대 도스용 미디 파일 포맷인 <code>.SOP (Ver 0.1)</code>의 바이너리 명세를 정밀 분석합니다.</p>
+    
+    <div id="dropZone" class="drop-zone">
+        SOP 파일을 이 곳에 드래그 앤 드롭하거나 클릭하여 선택하세요.
+        <input type="file" id="fileInput" class="hidden" accept=".sop">
+    </div>
+
+    <div id="resultArea" class="hidden">
+        <!-- 1. 기본 헤더 정보 -->
+        <div class="section">
+            <h2>1. 기본 파일 및 재생 환경 정보 (Header)</h2>
+            <table>
+                <tr><th width="30%">항목명</th><th>분석 결과값</th></tr>
+                <tr><td>파일 시그니처 (Signature)</td><td id="metaSig">-</td></tr>
+                <tr><td>파일 포맷 버전 (Version)</td><td id="metaVer">-</td></tr>
+                <tr><td>파일명</td><td id="fileName">-</td></tr>
+                <tr><td>곡 제목 (Song Title)</td><td id="metaTitle" style="font-weight:bold; color:#e74c3c;">-</td></tr>
+                <tr><td>드럼 모드 (Drum Mode)</td><td id="metaDrum">-</td></tr>
+                <tr><td>TPB (Tick Per Beat)</td><td id="metaTpb">-</td></tr>
+                <tr><td>마디당 박자 수 (보통 4박)</td><td id="beatMeasure">-</td></tr>
+                <tr><td>초기 템포 (BPM)</td><td id="metaBpm">-</td></tr>
+                <tr><td>활성화 트랙 수 (Num Channels)</td><td id="metaChan">-</td></tr>
+                <tr><td>내장 악기 개수 (Instruments)</td><td id="metaInstNum">-</td></tr>
+            </table>
+        </div>
+
+        <!-- 2. 채널별 4-오퍼레이터 합성 모드 상태 -->
+        <div class="section">
+            <h2>2. 채널별 하드웨어(OPL3) 매핑 플래그 (4-Op Mode)</h2>
+            <table id="channelModeTable">
+                <thead><tr><th>채널 번호</th><th>오퍼레이터 모드 플래그</th><th>설명</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- 3. 내장 악기 뱅크 -->
+        <div class="section">
+            <h2>3. 내장 악기 데이터 뱅크 리스트 (Instrument Bank)</h2>
+            <table id="instBankTable">
+                <thead>
+                    <tr>
+                        <th width="10%">번호</th>
+                        <th width="30%">모드 (Mode)</th>
+                        <th width="20%">악기 이름 (Timbre Name)</th>
+                        <th width="40%">레지스터 데이터 크기</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- 4. 트랙 데이터 메타 정보 -->
+        <div class="section">
+            <h2>4. 트랙별 연주 데이터 블록 메타 정보 (Tracks Meta)</h2>
+            <table id="trackMetaTable">
+                <thead>
+                    <tr>
+                        <th>트랙 번호</th>
+                        <th>총 음표/이벤트 개수 (Event Count)</th>
+                        <th>순수 연주 데이터 크기 (Data Size)</th>
+                        <th>트랙 이벤트(SOP_EVAL)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 자바스크립트 파일 연동 -->
+<script src="../adplug/johab-decoder.js"></script>
+<script src="sop-parser.js"></script>
+</body>
+</html>

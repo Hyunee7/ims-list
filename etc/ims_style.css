@@ -111,7 +111,7 @@ input[type="file"] {
 }
 
 .list-container {
-    max-height: 376px;
+    max-height: 380px;
     overflow-y: auto;
     background: #fafafa;
     border: 1px solid #e2e8f0;

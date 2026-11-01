@@ -272,6 +272,42 @@ window.record = rawRecords; // 디버그용
     this.is_bnk_loaded = false; // bnk 적재 여부
   }
 
+  // sop 파서
+  parse_sop(arrayBuffer){
+    const u8Array = new Uint8Array(arrayBuffer);
+    const view = new DataView(arrayBuffer);
+
+    // 76 바이트 해더 정보들
+    const signature = new TextDecoder('utf-8').decode(u8Array.subarray(0,7)); // sopepos
+    const majorVersion = view.getUint8(7);
+    const minorVersion = view.getUint8(8);
+    const versionCheck = view.getUint8(9); // check
+    //const fileName = new TextDecoder('utf-8').decode(u8Array.subarray(10,13));
+    const fileName = JohabDecoder.decode(arrayBuffer, 10, 13);
+    const title = JohabDecoder.decode(arrayBuffer, 23, 31);  // 곡명
+    //const comment = JohabDecoder.decode(arrayBuffer, 7+2+13+31, 13);
+    const percussive = view.getUint8(54); // 타아기모드 여부
+    const checkPercussive = view.getUint8(55); // check
+    const tickBeat = view.getUint8(56); // 비트당 틱 수
+    const checkTickBeat = view.getUint8(57); // check
+    const beatMeasure = view.getUint8(58); // 마디당 비트 수 -> check 용 0 이면 SOP 아님
+    const basicTempo = view.getUint8(59) || 120; // BPM
+    const comment = JohabDecoder.decode(arrayBuffer, 60, 13);
+    const nTracks  = view.getUint8(73); // 채널모드(들)
+    const nInsts  = view.getUint8(74); // 악기수
+    const check = view.getUint8(75); // check
+
+    const header = {
+      signature : signature, majorVersion:majorVersion, minorVersion:minorVersion,
+      versionCheck:versionCheck, fileName:fileName, title:title, percussive:percussive,
+      checkPercussive:checkPercussive, tickBeat:tickBeat, checkTickBeat:checkTickBeat,
+      beatMeasure:beatMeasure, basicTempo:basicTempo, comment:comment, nTracks:nTracks,
+      nInsts:nInsts, check:check
+    }
+    //console.log('SOP Header', header);
+    return header;   
+  }
+
   // ims 파서
   parse_ims(arrayBuffer){
     const u8Array = new Uint8Array(arrayBuffer);

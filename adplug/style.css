@@ -282,9 +282,15 @@ button:disabled {
 	font-size: 15px;
 }
 
+/* 연주 시간정보 출력부 */
 .time-area {
 	display: flex;
     justify-content: space-between;
+}
+
+/*  */
+#infoTitle {
+	white-space: pre-wrap;
 }
 
 /* 📱 4. [아이폰 X / 모바일 긴급 도킹 브레이크 레이어]: 가로 폭이 좁은 스마트폰 화면 대응 */

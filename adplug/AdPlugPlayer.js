@@ -35,6 +35,8 @@ export class AdPlugPlayer {
     this.defaultBankPath = './STANDARD.BNK';
 
 	this.ims = {};
+    this.sop = {};
+    this.title   = "";
 	this.imsName = "";
 	this.issName = "";
 	this.bnkName = "";
@@ -226,7 +228,12 @@ export class AdPlugPlayer {
       throw new Error('적재 실패');
       return false;
     }
+    if(ext==='SOP'){
+        this.sop = this.parser.parse_sop(sopBuffer); // ims 파싱
+        this.title = this.sop.title + ' / ' + this.sop.nTracks+'ch';
+    }
 
+        
     // ISS Load
     await this.loadISS(musicFileUrl);
     this.fileLoaded = true;
@@ -246,7 +253,7 @@ export class AdPlugPlayer {
     try {
       const ext = this.getFileExtension(musicFileUrl);
       if(ext!='IMS') return this.loadMusicSOP(musicFileUrl);
-console.log('musicFileUrl',musicFileUrl)
+//console.log('musicFileUrl',musicFileUrl)
       const pureImsName = musicFileUrl.split("/").pop() || "sample.ims"; this.imsName = pureImsName;
       
       const targetBnkUrl = this.getSideFileUrl(musicFileUrl, ".BNK");

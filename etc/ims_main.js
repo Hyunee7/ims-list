@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function() {
     var instListUl = document.getElementById('resInstList');
 	
   const dropZone = document.getElementById('drop-zone');
-  console.log('dropZone',dropZone)
+  //console.log('dropZone',dropZone)
   dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#4f46e5'; });
   dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#c7d2fe'; });
   dropZone.addEventListener('drop', (e) => {
@@ -64,9 +64,9 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('resTuneID').innerText = parser.header.nTuneID;
             document.getElementById('resTitle').innerText = parser.header.szTuneName ? parser.header.szTuneName : "(곡명 비어있음)";
             document.getElementById('resBeatInfo').innerText = parser.header.nTickBeat + " Ticks / " + parser.header.nBeatMeasure + " Beats";
-            document.getElementById('resTotalTick').innerText = parser.header.nTotalTick;
-            document.getElementById('resDataSize').innerText = parser.header.cbDataSize + " Bytes";
-            document.getElementById('resCommandCount').innerText = parser.header.nrCommand;
+            document.getElementById('resTotalTick').innerText = parser.header.nTotalTick.toLocaleString();
+            document.getElementById('resDataSize').innerText = parser.header.cbDataSize.toLocaleString() + " Bytes";
+            document.getElementById('resCommandCount').innerText = parser.header.nrCommand.toLocaleString();
             document.getElementById('resSrcTickBeat').innerText = parser.header.nSrcTickBeat;
             document.getElementById('resSoundMode').innerText = parser.header.nSoundMode;
             document.getElementById('resPitchRange').innerText = parser.header.nPitchBRange;

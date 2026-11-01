@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdLib ROL 파일 분석기 (URL Fetch)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6; margin: 0; padding: 20px; color: #333;
+        }
+        h1 { color: #2c3e50; text-align: center; }
+        #status-zone {
+            padding: 15px; border-radius: 8px; text-align: center;
+            font-weight: bold; margin-bottom: 20px; display: none;
+        }
+        .loading { background-color: #e8f4fd; color: #3498db; border: 1px solid #3498db; }
+        .error { background-color: #fce4e4; color: #e74c3c; border: 1px solid #e74c3c; }
+        #drop-zone {
+            border: 3px dashed #3498db; border-radius: 10px; background-color: #fff; 
+            padding: 30px; text-align: center; font-size: 1.1em; color: #3498db; 
+            cursor: pointer; transition: all 0.3s ease; margin-bottom: 20px;
+        }
+        #drop-zone.hover { background-color: #e8f4fd; border-color: #2980b9; color: #2980b9; }
+        #file-input { display: none; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .section {
+            background: #fff; padding: 20px; border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;
+        }
+        .section h2 { border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; color: #2c3e50; margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table, th, td { border: 1px solid #bdc3c7; }
+        th, td { padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        pre {
+            background-color: #2c3e50; color: #ecf0f1; padding: 15px;
+            border-radius: 5px; overflow-x: auto; max-height: 400px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .track-box {
+            border-left: 4px solid #3498db; background: #f9f9f9;
+            padding: 10px; margin-bottom: 10px; border-radius: 0 4px 4px 0;
+        }
+        .track-title { font-weight: bold; color: #2c3e50; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>AdLib Visual Composer (.ROL) File Viewer</h1>
+    
+    <!-- URL 상태 표시기 -->
+    <div id="status-zone"></div>
+
+    <!-- 파일 수동 로드 영역 (파라미터가 없거나 실패 시 사용) -->
+    <div id="drop-zone">URL 파라미터가 없거나 로드에 실패한 경우, 이곳에 .ROL 파일을 드래그하거나 클릭하여 선택하세요.</div>
+    <input type="file" id="file-input" accept=".rol">
+
+    <div id="result-container" style="display: none;">
+        <div class="section">
+            <h2>파일 헤더 (Header Info)</h2>
+            <table id="header-table"></table>
+        </div>
+        <div class="section">
+            <h2>트랙 데이터 (Tracks - 총 45개)</h2>
+            <div id="tracks-container"></div>
+        </div>
+    </div>
+</div>
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const statusZone = document.getElementById('status-zone');
+    const resultContainer = document.getElementById('result-container');
+    const headerTable = document.getElementById('header-table');
+    const tracksContainer = document.getElementById('tracks-container');
+
+    // 페이지 로드 시 URL 파라미터 체크
+    window.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileUrl = urlParams.get('url');
+
+        if (fileUrl) {
+            fetchRemoteFile(fileUrl);
+        }
+    });
+
+    // 원격 서버에서 ROL 파일 fetch 호출
+    function fetchRemoteFile(url) {
+        showStatus(`원격 파일 로딩 중: ${url}`, 'loading');
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP 에러! 상태코드: ${response.status}`);
+                }
+                return response.arrayBuffer(); // 바이너리 버퍼로 획득
+            })
+            .then(buffer => {
+                showStatus('원격 파일 수신 완료! 파싱을 시작합니다.', 'loading');
+                parseROL(buffer);
+                statusZone.style.display = 'none'; // 성공 시 상태창 숨김
+            })
+            .catch(error => {
+                console.error('Fetch 에러:', error);
+                showStatus(`파일을 가져오지 못했습니다. (원인: ${error.message}). CORS 정책이나 파일 경로를 확인하세요.`, 'error');
+            });
+    }
+
+    function showStatus(text, className) {
+        statusZone.innerText = text;
+        statusZone.className = ''; // 클래스 초기화
+        statusZone.classList.add(className);
+        statusZone.style.display = 'block';
+    }
+
+    // 드래그 앤 드롭 및 파일 탐색기 클릭 이벤트 리스너
+    // 로컬 수동 드롭다운 리스너 (기존 기능 유지)
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('hover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault(); dropZone.classList.remove('hover');
+        if (e.dataTransfer.files.length > 0) {
+            const reader = new FileReader();
+            reader.onload = (ev) => parseROL(ev.target.result);
+            reader.readAsArrayBuffer(e.dataTransfer.files[0]);
+        }
+    });
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            const reader = new FileReader();
+            reader.onload = (ev) => parseROL(ev.target.result);
+            reader.readAsArrayBuffer(e.target.files[0]);
+        }
+    });
+
+    function readNullTerminatedString(dataView, offset, maxLength) {
+        let str = '';
+        for (let i = 0; i < maxLength; i++) {
+            let charCode = dataView.getUint8(offset + i);
+            if (charCode === 0) break;
+            str += String.fromCharCode(charCode);
+        }
+        return str;
+    }
+</script>
+<script>
+    // 기존 스크립트 태그 내부에 정의되거나 하단에 연속되어 위치합니다.
+    // 기존 스크립트 흐름 하단에 위치합니다.
+    function parseROL(buffer) {
+        const view = new DataView(buffer);
+        let offset = 0;
+
+        // 1. 헤더 구조 해체 (Header)
+        // 1. 헤더 해독
+        const majorVersion = view.getUint16(offset, true); offset += 2;
+        const minorVersion = view.getUint16(offset, true); offset += 2;
+        const signature = readNullTerminatedString(view, offset, 40); offset += 40;
+        const tickBeat = view.getUint16(offset, true); offset += 2;
+        const beatMeasure = view.getUint16(offset, true); offset += 2;
+        const scaleY = view.getUint16(offset, true); offset += 2;
+        const scaleX = view.getUint16(offset, true); offset += 2;
+        const reserved = view.getUint8(offset); offset += 1;
+        const isMelodic = view.getUint8(offset); offset += 1;
+
+        // 트랙별 이벤트 카운터 배열 저장 (45개 수집) 및 패딩 점프
+        // 트랙 카운터 데이터 수집 후 스킵
+        const counters = [];
+        for (let i = 0; i < 45; i++) { counters.push(view.getUint16(offset, true)); offset += 2; }
+        offset += 38; // filler 패딩 생략
+
+        // 화면 표에 헤더 메타데이터 주입
+        headerTable.innerHTML = `
+            <tr><th>항목</th><th>값</th></tr>
+            <tr><td>버전 (Version)</td><td>${majorVersion}.${minorVersion}</td></tr>
+            <tr><td>시그니처 (Signature)</td><td>${signature}</td></tr>
+            <tr><td>박자당 틱 (Ticks/Beat)</td><td>${tickBeat}</td></tr>
+            <tr><td>마디당 박자 (Beats/Measure)</td><td>${beatMeasure}</td></tr>
+            <tr><td>리듬 모드 (OPL Mode)</td><td>${isMelodic === 1 ? 'Melodic (9 채널)' : 'Percussive (11 채널)'}</td></tr>
+        `;
+
+        // 2. 45개 트랙 정보 순차 해독
+        // 2. 45개 트랙 루프 파싱
+        tracksContainer.innerHTML = '';
+        for (let t = 0; t < 45; t++) {
+            const trackName = readNullTerminatedString(view, offset, 15); offset += 15;
+            let trackHtml = `<div class="track-box"><div class="track-title">[트랙 ${t+1}] ${trackName}</div>`;
+
+            if (t === 0) { // 템포 트랙 분석 // 템포
+                const basicTempo = view.getFloat32(offset, true); offset += 4;
+                const nEvents = view.getUint16(offset, true); offset += 2;
+                trackHtml += `<div>기본 템포: ${basicTempo.toFixed(2)} BPM (이벤트: ${nEvents}개)</div><pre>`;
+                for (let e = 0; e < nEvents; e++) {
+                    const atTick = view.getUint16(offset, true); offset += 2;
+                    const mult = view.getFloat32(offset, true); offset += 4;
+                    trackHtml += `  Tick ${atTick}: 템포 스케일 -> ${mult.toFixed(2)}배\n`;
+                }
+                trackHtml += `</pre>`;
+            } else { // 악기, 음표, 볼륨, 피치 채널 분석 // 오디오 데이터 채널
+                const trackType = (t - 1) % 4;
+                if (trackType === 0) { // Voice Track // Voice
+                    const nTicks = view.getUint16(offset, true); offset += 2;
+                    trackHtml += `<div>총 음표 연주 길이: ${nTicks} 틱</div><pre>`;
+                    let sumTicks = 0;
+                    while (sumTicks < nTicks && offset < view.byteLength) {
+                        const note = view.getUint16(offset, true); offset += 2;
+                        const duration = view.getUint16(offset, true); offset += 2;
+                        trackHtml += `  음표: ${note === 0 ? "노트 오프" : "MIDI Note " + note} | 지속: ${duration} 틱\n`;
+                        sumTicks += duration; if(duration === 0) break;
+                    }
+                    trackHtml += `</pre>`;
+                } else if (trackType === 1) { // Timbre Track // Timbre
+                    const nEvents = view.getUint16(offset, true); offset += 2;
+                    trackHtml += `<div>악기 패치 변경: ${nEvents}회</div><pre>`;
+                    for (let e = 0; e < nEvents; e++) {
+                        const atTick = view.getUint16(offset, true); offset += 2;
+                        const insName = readNullTerminatedString(view, offset, 9); offset += 9;
+                        offset += 3; // filler(1) + unknown(2) 스킵
+                        trackHtml += `  Tick ${atTick}: 악기 로드 -> ${insName}\n`;
+                    }
+                    trackHtml += `</pre>`;
+                } else if (trackType === 2) { // Volume Track // Volume
+                    const nEvents = view.getUint16(offset, true); offset += 2;
+                    trackHtml += `<div>채널 볼륨 이벤트: ${nEvents}개</div><pre>`;
+                    for (let e = 0; e < nEvents; e++) {
+                        const atTick = view.getUint16(offset, true); offset += 2;
+                        const vol = view.getFloat32(offset, true); offset += 4;
+                        trackHtml += `  Tick ${atTick}: 크기 설정 -> ${(vol * 100).toFixed(0)}%\n`;
+                    }
+                    trackHtml += `</pre>`;
+                } else if (trackType === 3) { // Pitch Track // Pitch
+                    const nEvents = view.getUint16(offset, true); offset += 2;
+                    trackHtml += `<div>피치 미세 조정: ${nEvents}개</div><pre>`;
+                    for (let e = 0; e < nEvents; e++) {
+                        const atTick = view.getUint16(offset, true); offset += 2;
+                        const pitch = view.getFloat32(offset, true); offset += 4;
+                        trackHtml += `  Tick ${atTick}: 음높이 변동값 -> ${pitch.toFixed(4)}\n`;
+                    }
+                    trackHtml += `</pre>`;
+                }
+            }
+            trackHtml += `</div>`; tracksContainer.innerHTML += trackHtml;
+        }
+        resultContainer.style.display = 'block';
+    }
+</script>
+</body>
+</html>

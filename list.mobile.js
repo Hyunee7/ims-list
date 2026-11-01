@@ -170,7 +170,7 @@ window.addEventListener("load", async ()=> {
 });
 
 /* 원본 인터페이스 액션 함수 브릿지 정의 */
-function getUrl(idx, ext='.IMS'){ // GET 방식 전달용 url 조합
+function getUrl(idx, ext=''){ // GET 방식 전달용 url 조합
 	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
 			+ escape(songs[idx].filename)+ext;
 	return encodeURIComponent(url);
@@ -179,7 +179,9 @@ function viewIss(idx) { // iss 파일 내용 보기
 	location.href = './etc/lyric.html?url='+getUrl(idx, '.ISS')+'&p=1';
 }
 function viewIms(idx) { // ims 파일 내용 보기
-	location.href = './etc/ims.html?url='+getUrl(idx)+'&p=1';
+    const ext = songs[idx].filename.split('.').pop().toLowerCase();
+    const notIms = (songs[idx].imsattr&0x80)==0x80;
+	location.href = './etc/'+ext+'.html?url='+getUrl(idx,notIms?'':'.IMS')+'&p=1';
 }
 //function ocplay(idx) { console.log("ocplay:", songs[idx]); }
 function hts(idx) { console.log("hts:", songs[idx]); }

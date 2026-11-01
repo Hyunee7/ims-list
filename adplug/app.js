@@ -428,12 +428,21 @@ async function startPlay() {
     const ext = player.getFileExtension(targetUrl);
 
     info = {title:"", files:[]}; // 곡명, 곡 파일들
-    info.title = ext=='IMS'?player.ims.header.tuneName:"[제목없음]"; // 제목
+    info.title = "[제목없음]"; // 제목
+    if(ext=='SOP'){
+        info.title = player.title;
+        document.getElementById('bpm').innerText = player.sop.basicTempo;
+    }else if(ext=='IMS'){
+        info.title = player.ims.header.tuneName;
+        document.getElementById('bpm').innerText = player.ims.header.basicTempo;
+    }
     info.files.push(targetUrl.split('/').pop()); // 음악 파일명 저장
     if(player.issName) info.files.push(player.issName);
     else 
       document.getElementById('lyricBox').innerHTML = "<span>            🎵 (자막 파일이 존재하지 않는 곡입니다)</span>";
     if(player.bnkName||false) info.files.push(player.bnkName); // BNK 파일명
+    
+    
   }  
 
   handleVisibilityChange(); // audioContext 깨우기

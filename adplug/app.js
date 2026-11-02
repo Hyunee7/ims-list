@@ -9,6 +9,7 @@ const player = new AdPlugPlayer();
 
 // 외부호출 시 전달된 IMS 경로
 let MUSIC_URL = './100MEET.IMS';
+MUSIC_URL = './001 LucasArts Logo.vgz'; // 테스트
 
 // =================================================================
 // 플레이리스트 [미사용]
@@ -297,7 +298,11 @@ function startInterfaceLoop() {
     document.getElementById('curTick').innerText = currentEmuTick.toLocaleString();
     if( /\.ims/i.test(info.files[0]) ) currentEmuTick = currentEmuTick /8 -8;
     if( /\.rol/i.test(info.files[0]) ) currentEmuTick = currentEmuTick * 7.4;
-    if( /\.sop/i.test(info.files[0]) ) currentEmuTick = currentEmuTick * 3.75;
+//    if( /\.sop/i.test(info.files[0]) ) currentEmuTick = currentEmuTick * 3.75;
+//    if( /\.sop/i.test(info.files[0]) ) currentEmuTick = currentEmuTick * 2.45;
+//    if( /\.sop/i.test(info.files[0]) ) currentEmuTick = currentEmuTick * 1.87;
+//    if( /\.sop/i.test(info.files[0]) ) currentEmuTick = currentEmuTick * (player.sop.basicTempo / (player.sop.tickBeat*player.sop.beatMeasure));
+    if( /\.sop/i.test(info.files[0]) ) currentEmuTick = currentEmuTick * (player.sop.basicTempo / (player.sop.tickBeat*4));
     // [부하 차단 핵심 가드]: 엔진 내부 틱이 이전 프레임과 동일하다면 DOM 렌더링을 전면 패스.
     if (currentEmuTick === lastEmuTick) {
       rAF_InterfaceId = requestAnimationFrame(loop);
@@ -421,8 +426,13 @@ async function startPlay() {
   if (!player.fileLoaded) {  // 읽은 파일이 없을 때
     // 🎯 url 파라미터 있으면 MUSIC_URL 대신 URL 값을 배치.
     const targetUrl = window.ACTIVE_MUSIC_URL || MUSIC_URL;
-    await player.loadMusicFile( escape(targetUrl) ); // 👈 targetUrl로 변경
+    const rs = await player.loadMusicFile( escape(targetUrl) ); // 👈 targetUrl로 변경
 //console.log('player.parser.scripts', player.parser.scripts)    
+//    console.log('rs',rs)
+    if(rs!=''){
+        document.getElementById('lyricBox').innerHTML = "<span>            "+rs+"</span>";
+        return false;
+    }
     await renderAllLyricsToWindow(player.parser.scripts);
     
     const ext = player.getFileExtension(targetUrl);

@@ -216,7 +216,9 @@ export class AdPlugPlayer {
     }
       
     const pureSopName = musicFileUrl.split("/").pop() || "sample.ims"; this.imsName = pureSopName;
-    const sopResponse = await fetch(unescape(musicFileUrl));
+    console.log(unescape(musicFileUrl))
+//    console.log(unescape(musicFileUrl).replace(/#/g,'%23'))
+    const sopResponse = await fetch(unescape(musicFileUrl).replace(/#/g,'%23'));
     if (!sopResponse.ok) throw new Error(`SOP 파일 호출 실패: ${sopResponse.status}`);
     const sopBuffer = await sopResponse.arrayBuffer();
     // 음원 바이너리 데이터 적재
@@ -225,8 +227,9 @@ export class AdPlugPlayer {
     if (!success) {
       console.log('!success',success)
       this.fileLoaded = false;
-      throw new Error('적재 실패');
-      return false;
+      //throw new Error('적재 실패');
+      //return false;
+      return '⚠️ 적재 실패';
     }
     if(ext==='SOP'){
         this.sop = this.parser.parse_sop(sopBuffer); // ims 파싱
@@ -235,11 +238,12 @@ export class AdPlugPlayer {
 
         
     // ISS Load
-    await this.loadISS(musicFileUrl);
+    if( '?ROL|SOP'.indexOf(ext)>0 ) await this.loadISS(musicFileUrl);
     this.fileLoaded = true;
     this.isPaused = false; 
     this.queue.clear();
-    return true;
+    //return true;
+    return '';
   }
 
   /**
@@ -304,24 +308,6 @@ export class AdPlugPlayer {
 	  this.ims = this.parser.parse_ims(imsBuffer); // ims 파싱
 
       // 5. 노래방 자막 파일(.ISS) 존재 여부 실시간 확인 사양
-      /*
-      console.log(`%c🔄 IMPlay 표준 조합형 구조(.ISS) 바이너리 분석 중...`, "color: #54ffff; font-weight:bold;");
-      const hasIssFile = await this.checkFileExists(targetIssUrl);
-      this.currentIssData = null; 
-
-      if (hasIssFile) {
-        this.issName = targetIssUrl.substring(targetIssUrl.lastIndexOf('/')+1);
-        console.log(`%c[자동 매핑 가사 발견]: %c${targetIssUrl} 동기화 레이어 바인딩`, "color: #54ffff; font-weight:bold;");
-        const issResponse = await fetch(targetIssUrl);
-        if (issResponse.ok) {
-          this.rawIssBuffer = await issResponse.arrayBuffer();
-		  this.parser.parse(this.rawIssBuffer); // 가사 파싱
-        }
-      } else {
-        console.log(`%c[가사 자막 유실 안내]: %c해당 곡은 ISS 가사 보기를 생략합니다.`, "color: #aaaaaa;");
-        this.rawIssBuffer = null;
-      }
-      */
       await this.loadISS(musicFileUrl); // 가사 가져오기
 
       // 6. 곡 고유의 오리지널 헤더 메타데이터 정보 분석 동기화

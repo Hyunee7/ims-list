@@ -171,7 +171,12 @@ window.addEventListener("load", async ()=> {
 
 /* 원본 인터페이스 액션 함수 브릿지 정의 */
 function getUrl(idx, ext=''){ // GET 방식 전달용 url 조합
-	var url = '../dos/C_Drv' + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
+    let path = '../dos/C_Drv';
+	if(songs[idx].imsattr & 0x80){
+        ext  = '';
+        path = '../dos';
+    }
+	var url = path + songs[idx].path.replace(/\\/g,'/').replace(/&/g,'%26').substring(2) + '/'
 			+ escape(songs[idx].filename)+ext;
 	return encodeURIComponent(url);
 }
@@ -216,8 +221,12 @@ window.adp = myIframe.contentWindow; // 디버그용
 
 // 노래목록에서 full 경로 구하기 (도스경로->서버경로)
 function getSongFile(idx, ext='.IMS'){
-	if(songs[idx].imsattr & 0x80) ext='';
-	var url = '../dos/C_Drv'
+    let path = '../dos/C_Drv';
+	if(songs[idx].imsattr & 0x80){
+        ext  = '';
+        path = '../dos';
+    }
+	var url = path
 	        + songs[idx].path.replace(/\\/g,'/')
 		                     //.replace(/&/g,'%26')
 				             .substring(2) + '/'

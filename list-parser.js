@@ -178,23 +178,27 @@ console.log(songs)
 	// ims 가 아닌 파일들 읽기
 	async function notImsLoad(){
 		// fetch()를 이용해 json 파일 요청
-		fetch('./notims.json')
-		  .then((response) => {
-			// 응답을 json() 메서드로 파싱
-			return response.json();
-		  })
-		  .then((data) => {
-			console.log('불러온 데이터:', data);
-			// 여기서 데이터 처리 로직 작성
-			data.forEach(item=>{
-				item.index = songs.length;
-				item.duration = Math.round(item.duration);
-				songs.push(item);
-			});
-		  })
-		  .catch((error) => {
-			console.error('에러 발생:', error);
-		  });
+        //['./notims.json', './notims.vgz.json'].forEach( list => {
+        ['./notims.json'].forEach( list => {
+            fetch(list)
+              .then((response) => {
+                // 응답을 json() 메서드로 파싱
+                return response.json();
+              })
+              .then((data) => {
+                console.log('불러온 데이터:', data);
+                // 여기서 데이터 처리 로직 작성
+                data.forEach(item=>{
+                    item.index = songs.length;
+                    item.duration = Math.round(item.duration);
+                    songs.push(item);
+                });
+              })
+              .catch((error) => {
+                console.error('파일:', list);
+                console.error('에러 발생:', error);
+              });
+        });
 	}
 
 function downloadCSV(lines, filename) {

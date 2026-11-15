@@ -20,6 +20,7 @@ const PLAYLIST = [
 ];
 let PLAYLIST_index = 0;
 // =================================================================
+window.SIMILARLIST = {}; // 유사곡
 
 const params = new URLSearchParams(unescape(window.location.search)); // GET 방식 파라미터 파싱
 const isPopup = params.get('p') || false;
@@ -429,7 +430,7 @@ async function startPlay() {
     const rs = await player.loadMusicFile( escape(targetUrl) ); // 👈 targetUrl로 변경
 //console.log('player.parser.scripts', player.parser.scripts)    
 //    console.log('rs',rs)
-    if(rs!=''){
+    if(rs!=""){
         document.getElementById('lyricBox').innerHTML = "<span>            "+rs+"</span>";
         return false;
     }
@@ -615,7 +616,7 @@ document.getElementById('lyricsBtn').addEventListener('click', () => {
 });
 
 // 닫기() 버튼 클릭
-const secondSpan = document.querySelector('.title-bar span:nth-of-type(2)');
+const secondSpan = document.querySelector('.title-bar span:nth-of-type(3)');
 secondSpan.addEventListener('click', () => {
 	stopInterface(); // 재생정지
 
@@ -631,9 +632,13 @@ function closeParent() {
     } else {
         console.error("부모 창의 함수에 접근할 수 없습니다. (도메인이 다르거나 함수가 없습니다.)");
     }
+    if(!similarView){
+        similarDiv.classList.add('hidden');
+        similarView=true;
+    }
 }
 
-document.getElementById('closeFullScreen').addEventListener('click', closeParent);
+//document.getElementById('closeFullScreen').addEventListener('click', closeParent);
 
 
 // 모바일 화면 회전 시 비주얼라이저 자석 배열 실시간 갱신 장치
@@ -659,7 +664,44 @@ const isIPad = /iPad/.test(navigator.userAgent) ||
 
 
 
+// 유사곡 목록 출력
+function renderSimilar(){
+    if (!similarDiv) return;
+    //console.log(SIMILARLIST);
+    similarDiv.innerHTML = `<h3 style="color:#fff;">[유사 음원 - 총 ${SIMILARLIST.matches.length}개]</h3>` +
+                           `<div id="similar-grid"></div>`;
+    const container = document.getElementById('similar-grid');
+    const activeFile = MUSIC_URL.replace('../dos/C_Drv/MUSIC/DATA/','');
+console.log('activeFile', activeFile);
+    SIMILARLIST.matches.forEach( (song, i) => {
+        const btn = document.createElement('button');
+        btn.innerText = `${String(i + 1).padStart(2, '0')}. ${song.filename} (${song.score}%)`;
+        // 현재 재생곡 색 지정
+        if(activeFile == song.filename.replace(/\\/g,'/')) btn.style.cssText = "color:#979797;";
+        //btn.style.cssText = "background:#333; color:#fff; border:1px solid #555; padding:6px; font-size:13px; cursor:pointer;";
+        const basePath = '../dos/C_Drv/MUSIC/DATA/';
+        btn.onclick = () => { extPlay( basePath + song.filename.replace(/\\/g,'/') ); };
+        container.appendChild(btn);
+    })
+    //similarDiv.classList.remove('hidden');
+    //similarTitle.innerText = `${SIMILARLIST.matches.length}`;
+    similarTitle.innerText = `[유사-${SIMILARLIST.matches.length}개]`;
+}
 
+const similarDiv = document.getElementById('similar');
+const similarTitle = document.getElementById('similarTitle');
+//console.log(similarTitle)
+let similarView = true;
+similarTitle.addEventListener('click', (e) => {
+    console.log(e)
+    if(similarView){
+        similarDiv.classList.remove('hidden');
+        similarView=false;
+    }else{
+        similarDiv.classList.add('hidden');
+        similarView=true;
+    }
+});
 
 
 // 외부에서 재생 호출
@@ -671,14 +713,16 @@ export function extPlay(music){
 	window.ACTIVE_MUSIC_URL = null;
 	MUSIC_URL = music;         // 재생할 파일 적용
 	startPlay();               // 재생시작
+    
+    renderSimilar();
 }
 window.extPlay = extPlay; // export 가 안되서 강제 전달
 
- 
- 
- 
- 
 
+
+
+
+// 자바스크립트가 고동되는 디바이스가 PC인지 확인
 function isPC() {
     const userAgent = navigator.userAgent.toLowerCase();
     // 모바일 관련 키워드 목록

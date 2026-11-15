@@ -221,6 +221,32 @@ button:disabled {
 
 .hidden { display: none !important; }
 
+#similar {
+    margin: 10px 10px;
+}
+
+#similar-grid {
+    /*display: grid;
+    grid-template-columns: repeat(4, 1fr);*/
+    display: flex;
+    flex-wrap: wrap; /* 공간 부족 시 자동 줄바꿈 */
+    gap: 8px;
+    text-align: left;
+}
+
+#similar-grid button{
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 6px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#similarTitle {
+    font-weight: normal;
+}
+
 /* style.css 파일 내부 교정 및 반응형 미디어 쿼리 추가 */
 
 /* 1. PC 및 기본 화면 설정: 최대 크기를 500px로 제한하되 화면이 작아지면 유연하게 수축하도록 변경 */

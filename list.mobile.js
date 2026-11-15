@@ -212,8 +212,9 @@ function hts(idx) { console.log("hts:", songs[idx]); }
 // adplug 모듈로 연주
 // 페이지 전환시 애플계열에서 자동재생이 안되는 문제있음
 // iFrame 내부 제어로 전면 개편함.
-function adplug(idx){
+async function adplug(idx){
 	// iframe 으로 처리
+    myIframe.contentWindow.SIMILARLIST = await findSimilar(idx); // 유사곡
 	myIframe.contentWindow.extPlay(getSongFile(idx)); // iframe 함수 호출
 	openFullscreen(); // 숨긴 div(iframe 포함된) 보이기
 }

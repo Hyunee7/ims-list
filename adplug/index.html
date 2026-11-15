@@ -7,12 +7,17 @@
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-    <!-- 닫기 버튼 -->
-    <button id="closeFullScreen" style="display: none;">전체화면 닫기</button>
+ <div style="width:100%;max-width: 645px;padding-right: 20px;">
+  <!-- 유사 음원 -->
+  <div id="similar" class="hidden">유사곡리스트</div>
+  
+  <!-- 닫기 버튼 -- >
+  <button id="closeFullScreen" style="display: none;">전체화면 닫기</button>
+  <!--  -->
 
   <div class="dos-window">
     <div class="title-bar">
-      <span>AdPlug 가라오케 연주기</span>
+      <span>AdPlug 가라오케 연주기</span><span id='similarTitle'></span>
       <!-- <span style="color: var(--color-yellow)">[■]</span> -->
       
       <span style="color: var(--color-yellow);cursor:pointer;">[❌]</span>
@@ -99,7 +104,7 @@
       </div>
     </div>
   </div>
-
+ </div>
   <!-- 조합형한글 변홤모듈 -->
   <script src="johab-decoder.js"></script>   
   <script type="module" src="./app.js"></script>

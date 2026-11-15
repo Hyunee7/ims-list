@@ -48,6 +48,9 @@ let page_num = 20;        // 한페이지 출력할 곡 수
 let show_page_num = 10;   // 페이지 숫자를 출력할 개수
 let current_page = 1;     // 현재 출력된 page 번호
 
+let similarDb = []; // 유사곡DB
+let similarIdx = []; // 유사곡DB
+
 
 // 정렬
 function listSort(id){
@@ -200,6 +203,52 @@ console.log(songs)
               });
         });
 	}
+    
+    // 유사곡 DB 불러오기
+    async function getSimilar(){
+        await fetch('similar_20261114_230900.json')
+//        fetch('similar.json')
+            .then((response) => {
+                // 응답을 json() 메서드로 파싱
+                return response.json();
+            })
+            .then((data) => {
+                //console.log('불러온 데이터:', data);
+                // 여기서 데이터 처리 로직 작성
+                similarDb = data;
+                // idx 생성
+                similarDb.forEach((item,idx)=>{
+                    //similarIdx.push({filename:item.baseFilename,idx:idx});
+                    item.matches.forEach((m,i)=>{
+                        similarIdx.push({filename:m.filename,idx:idx});                        
+                    })
+                })
+            })
+            .catch((error) => {
+                console.error('파일:', list);
+                console.error('에러 발생:', error);
+            });
+    }
+    
+    // 유사곡 찾기
+    async function findSimilar(idx){
+        const ext = (songs[idx].imsattr & 0x80)?'':'.IMS';
+        const path = songs[idx].path.replace('C:\\MUSIC\\DATA\\','');
+        const file = songs[idx].filename+ext;
+        const filename = path+'\\'+file;
+        
+        // 유사곡 DB 가 비었으면 불러오기
+        if(similarDb.length == 0) await getSimilar();
+        //console.debug('filename',filename)
+        // 기준곡으로 찾기
+        //const similar = similarDb[similarDb.findIndex(grp=>grp.baseFilename==filename)];
+        const sIdx = similarIdx.findIndex( item=>item.filename==filename );
+        //console.debug('sIdx',sIdx);
+        //console.debug(             similarIdx.findIndex( o=>o.filename=="IMS_DATA\\TEG-I&H3.IMS" ));
+        const similar = similarDb[ similarIdx[similarIdx.findIndex(item=>item.filename==filename)].idx ];
+        console.debug('similar', similar);
+        return similar;
+    }
 
 function downloadCSV(lines, filename) {
     const BOM = '\uFEFF'; // 엑셀 한글 깨짐 방지

@@ -127,6 +127,14 @@ td {
     border-bottom: 1px dashed #333333;
     font-size: 16px;
 }
+
+/* 각 tr의 첫 번째 td에만 적용 */
+tr td:first-child {
+  /*background-color: #f0f0f0;
+  font-weight: bold;*/
+  font-size: 12px;
+}
+
 tr:hover td {
     background-color: #222222;
     color: var(--dos-fg) !important;

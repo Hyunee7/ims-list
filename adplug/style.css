@@ -225,22 +225,32 @@ button:disabled {
     margin: 10px 10px;
 }
 
+#similar h3{
+    box-shadow: 6px 6px 20px rgba(0,0,0,0.6);
+}
+
 #similar-grid {
     /*display: grid;
-    grid-template-columns: repeat(4, 1fr);*/
+    grid-template-columns: repeat(4, 1fr);*/ /* 1줄 4개씩 */
     display: flex;
     flex-wrap: wrap; /* 공간 부족 시 자동 줄바꿈 */
     gap: 8px;
     text-align: left;
+    overflow-y: auto;
+    max-height: 130px;
+    padding: 10px;
 }
 
 #similar-grid button{
     background: #333;
     color: #fff;
     border: 1px solid #555;
+    width: 240px;
+    text-align: left;
     padding: 6px;
     font-size: 13px;
     cursor: pointer;
+    box-shadow: 6px 6px 10px rgba(0,0,0,0.6);
 }
 
 #similarTitle {

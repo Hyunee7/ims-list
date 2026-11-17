@@ -169,20 +169,20 @@ export class AdPlugPlayer {
   // ISS 파일 로드
   async loadISS(musicFileUrl) {
       const targetIssUrl = this.getSideFileUrl(musicFileUrl, ".ISS");
-      console.log(`%c🔄 IMPlay 표준 조합형 구조(.ISS) 바이너리 분석 중...`, "color: #54ffff; font-weight:bold;");
+      console.info(`%c🔄 IMPlay 표준 조합형 구조(.ISS) 바이너리 분석 중...`, "color: #54ffff; font-weight:bold;");
       const hasIssFile = await this.checkFileExists(targetIssUrl);
       this.currentIssData = null; 
 
       if (hasIssFile) {
         this.issName = targetIssUrl.substring(targetIssUrl.lastIndexOf('/')+1);
-        console.log(`%c[자동 매핑 가사 발견]: %c${targetIssUrl} 동기화 레이어 바인딩`, "color: #54ffff; font-weight:bold;");
+        console.info(`%c[자동 매핑 가사 발견]: %c${targetIssUrl} 동기화 레이어 바인딩`, "color: #54ffff; font-weight:bold;");
         const issResponse = await fetch(targetIssUrl);
         if (issResponse.ok) {
           this.rawIssBuffer = await issResponse.arrayBuffer();
 		  this.parser.parse(this.rawIssBuffer); // 가사 파싱
         }
       } else {
-        console.log(`%c[가사 자막 유실 안내]: %c해당 곡은 ISS 가사 보기를 생략합니다.`, "color: #aaaaaa;");
+        console.info(`%c[가사 자막 유실 안내]: %c해당 곡은 ISS 가사 보기를 생략합니다.`, "color: #aaaaaa;");
         this.rawIssBuffer = null;
       }
   }
@@ -199,11 +199,11 @@ export class AdPlugPlayer {
       let bnkUrlToFetch = this.defaultBankPath; // 기본값은 무조건 로컬의 './STANDARD.BNK'
       const hasCustomBank = await this.checkFileExists(targetBnkUrl);
       if (hasCustomBank) {
-        console.log(`%c[자동 매핑 외부 뱅크 발견]: %c${targetBnkUrl} 도킹`, "color: #54ff54; font-weight:bold;");
+        console.info(`%c[자동 매핑 외부 뱅크 발견]: %c${targetBnkUrl} 도킹`, "color: #54ff54; font-weight:bold;");
         bnkUrlToFetch = targetBnkUrl;
       } else {
         // 🎯 [핵심 변경 규칙]: 커스텀 뱅크 유실 시, 외부 서버의 STANDARD.BNK가 아닌 내 로컬 루트 패스로 확실하게 타겟 고정
-        console.log(`%c[외부 커스텀 뱅크 부재]: %c내 로컬 시스템의 STANDARD.BNK 대체 스왑 처리`, "color: #ffaa00; font-weight:bold;");
+        console.info(`%c[외부 커스텀 뱅크 부재]: %c내 로컬 시스템의 STANDARD.BNK 대체 스왑 처리`, "color: #ffaa00; font-weight:bold;");
         bnkUrlToFetch = this.defaultBankPath; 
       }
       const bnkResponse = await fetch(bnkUrlToFetch);
@@ -216,7 +216,7 @@ export class AdPlugPlayer {
     }
       
     const pureSopName = musicFileUrl.split("/").pop() || "sample.ims"; this.imsName = pureSopName;
-    console.log(unescape(musicFileUrl))
+    console.debug(unescape(musicFileUrl))
 //    console.log(unescape(musicFileUrl).replace(/#/g,'%23'))
     const sopResponse = await fetch(unescape(musicFileUrl).replace(/#/g,'%23'));
     if (!sopResponse.ok) throw new Error(`SOP 파일 호출 실패: ${sopResponse.status}`);
@@ -225,7 +225,7 @@ export class AdPlugPlayer {
     const sopUint8Array = new Uint8Array(sopBuffer);
     const success = this.memory.loadMusicFileToWasm(pureSopName, sopUint8Array);
     if (!success) {
-      console.log('!success',success)
+      console.debug('!success',success)
       this.fileLoaded = false;
       //throw new Error('적재 실패');
       //return false;
@@ -270,11 +270,11 @@ export class AdPlugPlayer {
       const hasCustomBank = await this.checkFileExists(targetBnkUrl);
       
       if (hasCustomBank) {
-        console.log(`%c[자동 매핑 외부 뱅크 발견]: %c${targetBnkUrl} 도킹`, "color: #54ff54; font-weight:bold;");
+        console.info(`%c[자동 매핑 외부 뱅크 발견]: %c${targetBnkUrl} 도킹`, "color: #54ff54; font-weight:bold;");
         bnkUrlToFetch = targetBnkUrl;
       } else {
         // 🎯 [핵심 변경 규칙]: 커스텀 뱅크 유실 시, 외부 서버의 STANDARD.BNK가 아닌 내 로컬 루트 패스로 확실하게 타겟 고정
-        console.log(`%c[외부 커스텀 뱅크 부재]: %c내 로컬 시스템의 STANDARD.BNK 대체 스왑 처리`, "color: #ffaa00; font-weight:bold;");
+        console.info(`%c[외부 커스텀 뱅크 부재]: %c내 로컬 시스템의 STANDARD.BNK 대체 스왑 처리`, "color: #ffaa00; font-weight:bold;");
         bnkUrlToFetch = this.defaultBankPath; 
       }
 
@@ -303,7 +303,7 @@ export class AdPlugPlayer {
       const success = this.memory.loadMusicFileToWasm(pureImsName, imsUint8Array);
       if (!success) {
         this.fileLoaded = false;
-        return false;
+        return "음원 적재 실패";
       }
 	  this.ims = this.parser.parse_ims(imsBuffer); // ims 파싱
 
@@ -322,12 +322,12 @@ export class AdPlugPlayer {
       this.fileLoaded = true;
       this.isPaused = false; 
       this.queue.clear();
-      return true;
+      return "";
 
     } catch (err) {
       console.error("[AdPlugPlayer] 자동 리소스 도킹 프로세스 치명적 실패:", err);
       this.fileLoaded = false;
-      return false;
+      return "[AdPlugPlayer] 음원 적재 실패:"+err;
     }
   }
 

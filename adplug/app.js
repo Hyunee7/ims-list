@@ -616,8 +616,8 @@ document.getElementById('lyricsBtn').addEventListener('click', () => {
 });
 
 // 닫기() 버튼 클릭
-const secondSpan = document.querySelector('.title-bar span:nth-of-type(3)');
-secondSpan.addEventListener('click', () => {
+const closeSpan = document.querySelector('.title-bar span:nth-of-type(3)');
+closeSpan.addEventListener('click', () => {
 	stopInterface(); // 재생정지
 
 	if(params.get('p'))	history.go(-1); // 이전 페이지로
@@ -668,11 +668,13 @@ const isIPad = /iPad/.test(navigator.userAgent) ||
 function renderSimilar(){
     if (!similarDiv) return;
     //console.log(SIMILARLIST);
-    similarDiv.innerHTML = `<h3 style="color:#fff;">[유사 음원 - 총 ${SIMILARLIST.matches.length}개]</h3>` +
-                           `<div id="similar-grid"></div>`;
+    similarDiv.innerHTML = '<div class="title-bar">' +
+                           `<span>유사 음원 - 총 ${SIMILARLIST.matches.length}곡</span>` +
+                           '<span id="sClose" style="color: var(--color-yellow);cursor:pointer;">[❌]</span></div>' +
+                           '<div id="similar-grid"></div>';
     const container = document.getElementById('similar-grid');
     const activeFile = MUSIC_URL.replace('../dos/C_Drv/MUSIC/DATA/','');
-console.log('activeFile', activeFile);
+console.debug('activeFile', activeFile);
     SIMILARLIST.matches.forEach( (song, i) => {
         const btn = document.createElement('button');
         btn.innerText = `${String(i + 1).padStart(2, '0')}. ${song.filename} (${song.score}%)`;
@@ -685,7 +687,16 @@ console.log('activeFile', activeFile);
     })
     //similarDiv.classList.remove('hidden');
     //similarTitle.innerText = `${SIMILARLIST.matches.length}`;
-    similarTitle.innerText = `[유사-${SIMILARLIST.matches.length}개]`;
+    similarTitle.innerText = `[유사-${SIMILARLIST.matches.length}곡]`;
+
+    // 닫기() 버튼 클릭
+    //const secondSpan = document.querySelector('.title-bar span:nth-of-type(2)');
+    const secondSpan = document.getElementById('sClose');
+    secondSpan.addEventListener('click', () => {
+        console.log(1234)
+        similarDiv.classList.add('hidden');
+        similarView=true;
+    });
 }
 
 const similarDiv = document.getElementById('similar');
@@ -693,7 +704,7 @@ const similarTitle = document.getElementById('similarTitle');
 //console.log(similarTitle)
 let similarView = true;
 similarTitle.addEventListener('click', (e) => {
-    console.log(e)
+    console.debug(e)
     if(similarView){
         similarDiv.classList.remove('hidden');
         similarView=false;
@@ -733,9 +744,9 @@ function isPC() {
 }
 
 if (isPC()) {
-    console.log("PC 환경입니다.");
+    console.debug("PC 환경입니다.");
 } else {
-    console.log("모바일 환경입니다.");
+    console.debug("모바일 환경입니다.");
 }
 
 
@@ -752,7 +763,7 @@ function handleVisibilityChange() {
     // 1. [오디오 엔진 복원] iOS 및 크롬 백그라운드 락 완화
     if (player.audioContext && (player.audioContext.state === 'suspended' || player.audioContext.state === 'interrupted')) {
       player.audioContext.resume().then(() => {
-        console.log('AudioContext가 성공적으로 재개되었습니다.');
+        console.info('AudioContext가 성공적으로 재개되었습니다.');
       }).catch(err => {
         console.error('재개 실패:', err);
       });

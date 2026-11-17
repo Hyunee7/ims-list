@@ -184,8 +184,8 @@ function viewIss(idx) { // iss 파일 내용 보기
 	location.href = './etc/lyric.html?url='+getUrl(idx, '.ISS')+'&p=1';
 }
 function viewIms(idx) { // ims 파일 내용 보기
-    const ext = songs[idx].filename.split('.').pop().toLowerCase();
     const notIms = (songs[idx].imsattr&0x80)==0x80;
+    const ext = notIms?songs[idx].filename.split('.').pop().toLowerCase():'ims';
 	location.href = './etc/'+ext+'.html?url='+getUrl(idx,notIms?'':'.IMS')+'&p=1';
 }
 //function ocplay(idx) { console.log("ocplay:", songs[idx]); }

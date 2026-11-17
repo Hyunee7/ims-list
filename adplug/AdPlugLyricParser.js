@@ -38,7 +38,7 @@ export class AdPlugLyricParser {
     this.meta.composer = JohabDecoder.decode(arrayBuffer,  60,  30).trim(); // 작곡
     this.meta.singer   = JohabDecoder.decode(arrayBuffer,  90, 120).trim(); // 가수
     this.meta.editor   = JohabDecoder.decode(arrayBuffer, 120, 150).trim(); // ISS 제작
-console.log(this.meta);
+console.debug(this.meta);
 
 	// 제어 레코드 수
     const recCount  = u8Array[offset] | (u8Array[offset + 1] << 8);    offset += 2;
